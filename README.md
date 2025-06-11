@@ -4,7 +4,7 @@
 
 ## About the Name
 
-The name "DNS Bench Pro" was chosen for its straightforwardness and simplicity. While "Pro" just popped up in my head, it primarily indicates a dedicated, no-frills tool for its specific purpose.
+The name "DNS Bench Pro" was chosen for its straightforwardness and simplicity. While "Pro" just popped up in my head, it primarily indicates a dedicated.
 
 ## Introduction
 
