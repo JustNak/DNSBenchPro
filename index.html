@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<title>DNSBench Pro</title>
+		<link rel="stylesheet" href="css/style.css" />
+	</head>
+	<body>
+		<!-- Duration Modal -->
+		<div id="duration-modal" class="modal-overlay">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>Select Test Profile</h3>
+				</div>
+				<div class="modal-body">
+					<div class="duration-options">
+						<button class="duration-btn" data-queries="3">
+							Quick Test <span>3 queries/url</span>
+						</button>
+						<button class="duration-btn" data-queries="6">
+							Standard Test <span>6 queries/url</span>
+						</button>
+						<button class="duration-btn" data-queries="18">
+							Extended Test <span>18 queries/url</span>
+						</button>
+						<button class="duration-btn" data-queries="36">
+							Comprehensive <span>36 queries/url</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Edit Providers Modal -->
+		<div id="edit-providers-modal" class="modal-overlay">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>Edit DNS Providers</h3>
+				</div>
+				<div class="modal-body">
+					<div class="edit-form">
+						<div id="providers-list"></div>
+						<button class="add-provider-btn" id="add-provider-btn">
+							+ Add Provider
+						</button>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="modal-btn secondary" id="cancel-providers-btn">
+						Cancel
+					</button>
+					<button class="modal-btn primary" id="save-providers-btn">
+						Save Changes
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Edit Domains Modal -->
+		<div id="edit-domains-modal" class="modal-overlay">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>Edit Test Domains</h3>
+				</div>
+				<div class="modal-body">
+					<div class="edit-form">
+						<div class="form-group">
+							<label for="domains-textarea">
+								Domains to test (one per line):
+							</label>
+							<textarea
+								id="domains-textarea"
+								rows="10"
+								placeholder="google.com&#10;youtube.com&#10;facebook.com&#10;..."
+							></textarea>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="modal-btn secondary" id="cancel-domains-btn">
+						Cancel
+					</button>
+					<button class="modal-btn primary" id="save-domains-btn">
+						Save Changes
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<div id="start-screen">
+			<div class="container">
+				<h1>DNSBench Pro</h1>
+				<p
+					style="
+						margin-bottom: 2rem;
+						color: var(--text-muted);
+						font-size: 1.1rem;
+					"
+				>
+					Test and compare DNS resolver performance, reliability, and
+					features.
+				</p>
+				<button id="start-button" class="action-button">
+					Start Test
+				</button>
+			</div>
+		</div>
+
+		<div id="results-screen">
+			<div class="container">
+				<section id="recommendation-section" style="display: none">
+					<div id="recommendation-card">
+						<h3>Top Recommendation</h3>
+						<p id="recommendation-text"></p>
+					</div>
+				</section>
+
+				<section id="main-graph-section">
+					<h2>
+						<svg
+							class="icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+						>
+							<path
+								d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
+							/>
+						</svg>
+						Overall Performance
+					</h2>
+					<div id="status-text" class="status-text"></div>
+					<div id="progress-indicator" class="progress-indicator"></div>
+					<div id="main-graph-container">
+						<div id="main-graph-bars"></div>
+						<div class="graph-footer">
+							<div class="graph-footer-actions">
+								<button class="edit-btn" id="edit-providers-btn">
+									Edit Providers
+								</button>
+								<button class="edit-btn" id="edit-domains-btn">
+									Edit Sites
+								</button>
+							</div>
+							<button
+								id="run-again-button"
+								class="action-button"
+							>
+								Run Again
+							</button>
+						</div>
+					</div>
+					<div
+						id="error-summary"
+						class="error-summary"
+						style="display: none"
+					>
+						<h4>Connection Issues Detected</h4>
+						<div id="error-details"></div>
+					</div>
+				</section>
+
+				<section id="detailed-breakdown-section">
+					<h2>
+						<svg
+							class="icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+						>
+							<path
+								d="M12 3C6.486 3 2 7.486 2 13s4.486 10 10 10 10-4.486 10-10S17.514 3 12 3zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"
+							/>
+							<path
+								d="M13 7h-2v5.414l3.293 3.293 1.414-1.414L13 11.586z"
+							/>
+						</svg>
+						Detailed Breakdown
+					</h2>
+					<div id="detailed-graphs-container"></div>
+				</section>
+
+				<section id="comparison-section">
+					<h2>
+						<svg
+							class="icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+						>
+							<path
+								d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"
+							/>
+							<path
+								d="m14.239 8.3-4.48 1.92-1.92 4.48 4.48-1.92 1.92-4.48z"
+							/>
+						</svg>
+						Comprehensive Comparison
+					</h2>
+					<div class="comparison-container">
+						<div id="comparison-content">
+							<p
+								style="
+									text-align: center;
+									color: var(--text-muted);
+								"
+							>
+								Run a test to see detailed comparison data
+							</p>
+						</div>
+					</div>
+				</section>
+
+				<div id="controls-area">
+					<button
+						id="export-csv-button"
+						class="secondary-action-button"
+						style="display: none"
+					>
+						Export to CSV
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="footer-credit">
+			Inspired by
+			<a
+				href="https://github.com/BrainicHQ/DoHSpeedTest"
+				target="_blank"
+				rel="noopener noreferrer"
+				>DoHSpeedTest by BrainicHQ</a
+			>
+		</div>
+		<div class="footer-credit" id="creator-credit">
+			Created by Socheat Rotanak
+		</div>
+
+		<script src="js/main.js" type="module"></script>
+	</body>
+</html>
