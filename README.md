@@ -30,3 +30,6 @@ Using [DNS Bench Pro](https://dnsbenchpro.netlify.app) is incredibly simple:
 3.  Results will be displayed directly on the page, showing the response times for each provider.
 
 ---
+
+## Credit:
+** https://github.com/BrainicHQ/DoHSpeedTest
