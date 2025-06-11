@@ -1,10 +1,10 @@
-# DNS Bench Pro
+# [DNS Bench Pro](https://dnsbenchpro.netlify.app)
 
-**DNS Bench Pro** is a simple, client-side website tool designed to help you determine the closest and fastest DNS provider near your local area.
+**[DNS Bench Pro](https://dnsbenchpro.netlify.app)** is a simple, client-side website tool designed to help you determine the closest and fastest DNS provider near your local area.
 
 ## About the Name
 
-The name "DNS Bench Pro" was chosen for its straightforwardness and simplicity. While "Pro" was just a random name popped up in my head, it primarily indicates a dedicated, no-frills tool for its specific purpose.
+The name "DNS Bench Pro" was chosen for its straightforwardness and simplicity. While "Pro" just popped up in my head, it primarily indicates a dedicated, no-frills tool for its specific purpose.
 
 ## Introduction
 
@@ -19,13 +19,13 @@ This tool provides a straightforward way to benchmark various DNS providers from
 
 ## How It Works
 
-DNS Bench Pro leverages JavaScript to perform DNS lookups against a curated list of common, publicly available DNS providers. By accurately measuring the response time for each query, it helps you identify which provider offers the best performance and lowest latency relative to your current network location.
+[DNS Bench Pro](https://dnsbenchpro.netlify.app) leverages JavaScript to perform DNS lookups against a curated list of common, publicly available DNS providers. By accurately measuring the response time for each query, it helps you identify which provider offers the best performance and lowest latency relative to your current network location.
 
 ## Getting Started
 
-Using DNS Bench Pro is incredibly simple:
+Using [DNS Bench Pro](https://dnsbenchpro.netlify.app) is incredibly simple:
 
-1.  Navigate to the DNS Bench Pro website.
+1.  Navigate to the [DNS Bench Pro website](https://dnsbenchpro.netlify.app).
 2.  The tool will automatically begin benchmarking the listed DNS providers.
 3.  Results will be displayed directly on the page, showing the response times for each provider.
 
