@@ -32,4 +32,4 @@ Using [DNS Bench Pro](https://dnsbenchpro.netlify.app) is incredibly simple:
 ---
 
 ## Credit:
-** https://github.com/BrainicHQ/DoHSpeedTest
+**https://github.com/BrainicHQ/DoHSpeedTest
