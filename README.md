@@ -31,5 +31,5 @@ Using [DNS Bench Pro](https://dnsbenchpro.netlify.app) is incredibly simple:
 
 ---
 
-## Credit:
+## Inspired By:
 [dnsspeedtest](https://github.com/BrainicHQ/DoHSpeedTest) by **BrainicHQ**
