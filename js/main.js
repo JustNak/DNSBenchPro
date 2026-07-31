@@ -1,21 +1,26 @@
-// frontend/js/main.js
-// The main application entry point and orchestrator.
+// Application entry point and test orchestrator.
 
 import * as dom from "./dom.js";
 import * as ui from "./ui.js";
 import * as api from "./api.js";
 import * as stats from "./stats.js";
-import { initModals } from "./modals.js";
+import { initModals, openDurationModal } from "./modals.js";
 import {
 	getState,
 	loadSettings,
 	generateProviderColors,
+	createAbortController,
+	abortActiveRequests,
 } from "./config.js";
 
-/**
- * SEQUENTIAL TEST FUNCTION - Tests one provider at a time
- */
-async function runTestForProvider(provider, queriesPerUrl) {
+function progressTotals(queryCount) {
+	const state = getState();
+	const warmUps = state.providers.length * state.domains.length;
+	const measures = state.providers.length * state.domains.length * queryCount;
+	return { warmUps, measures, overall: warmUps + measures };
+}
+
+async function runTestForProvider(provider, queriesPerUrl, progressOffset, totals) {
 	const state = getState();
 	const allResults = [];
 	let runningTotalLatency = 0;
@@ -23,11 +28,10 @@ async function runTestForProvider(provider, queriesPerUrl) {
 
 	const totalQueries = queriesPerUrl * state.domains.length;
 	let currentQueryIndex = 0;
+	const providerIndex =
+		state.providers.findIndex((p) => p.name === provider.name) + 1;
 
-	console.log(
-		`🎯 Starting test for ${provider.name} with ${queriesPerUrl} queries per URL. Total: ${totalQueries}`,
-	);
-	ui.showStatus(`Testing ${provider.name}...`);
+	ui.showStatus(`Testing ${provider.name}…`);
 
 	for (const domain of state.domains) {
 		if (!state.isTestRunning) break;
@@ -36,17 +40,18 @@ async function runTestForProvider(provider, queriesPerUrl) {
 			if (!state.isTestRunning) break;
 
 			currentQueryIndex++;
-			ui.showProgress(
-				`${provider.name}: Query ${currentQueryIndex}/${totalQueries} - ${domain}`,
-			);
+			const overallIndex = progressOffset + currentQueryIndex;
+
+			ui.setProgress({
+				phase: "Measuring",
+				label: `${provider.name} (${providerIndex}/${state.providers.length})`,
+				detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain}`,
+				overallIndex,
+				overallTotal: totals.overall,
+			});
 
 			const isUncached = i === 0;
-
-			const result = await api.measureLatency(
-				provider,
-				domain,
-				isUncached,
-			);
+			const result = await api.measureLatency(provider, domain, isUncached);
 			allResults.push({ ...result, isUncached, domain });
 
 			if (result.latency !== null) {
@@ -56,22 +61,30 @@ async function runTestForProvider(provider, queriesPerUrl) {
 					runningTotalLatency / successfulQueryCount;
 				ui.updateMainGraph(provider.name, runningAverage);
 
-				ui.showProgress(
-					`${provider.name}: Query ${currentQueryIndex}/${totalQueries} - ${domain} (${result.latency.toFixed(
+				ui.setProgress({
+					phase: "Measuring",
+					label: `${provider.name} (${providerIndex}/${state.providers.length})`,
+					detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain} · ${result.latency.toFixed(
 						0,
-					)} ms)`,
-				);
+					)} ms`,
+					overallIndex,
+					overallTotal: totals.overall,
+				});
 			} else {
-				ui.showProgress(
-					`${provider.name}: Query ${currentQueryIndex}/${totalQueries} - ${domain} (Failed)`,
-				);
+				ui.setProgress({
+					phase: "Measuring",
+					label: `${provider.name} (${providerIndex}/${state.providers.length})`,
+					detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain} · failed`,
+					overallIndex,
+					overallTotal: totals.overall,
+				});
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, 100));
 		}
 	}
 
-	if (!state.isTestRunning) return;
+	if (allResults.length === 0) return;
 
 	const allStats = stats.calculateStats(allResults);
 	state.allProviderStats[provider.name] = allStats;
@@ -111,123 +124,211 @@ async function runTestForProvider(provider, queriesPerUrl) {
 	}
 
 	ui.displayDetailedBreakdown(provider.name, finalBreakdown);
-
-	console.log(`📊 ${provider.name} completed:`, {
-		overallAverage: allStats.average.toFixed(1) + "ms",
-		median: allStats.median.toFixed(1) + "ms",
-		stdDev: allStats.stdDev.toFixed(1) + "ms",
-	});
 }
 
-async function warmUpAllProviders() {
+async function warmUpAllProviders(totals) {
 	const state = getState();
-	console.log("🔥🔥🔥 Starting comprehensive warm-up phase...");
-	ui.showStatus("Warming up DNS connections...");
+	state.runPhase = "warmup";
+	ui.setProgress({
+		phase: "Warm-up",
+		label: "Priming DNS connections…",
+		detail: "So the first measurements aren’t slowed by cold starts.",
+		overallIndex: 0,
+		overallTotal: totals.overall,
+	});
 
 	let warmUpCount = 0;
-	const totalWarmUps = state.providers.length * state.domains.length;
 
 	for (const provider of state.providers) {
 		for (const domain of state.domains) {
 			if (!getState().isTestRunning) return;
 			warmUpCount++;
-			ui.showProgress(`Warming up: ${warmUpCount} / ${totalWarmUps}`);
+			ui.setProgress({
+				phase: "Warm-up",
+				label: "Priming DNS connections…",
+				detail: `${provider.name} · ${domain} (${warmUpCount}/${totals.warmUps})`,
+				overallIndex: warmUpCount,
+				overallTotal: totals.overall,
+			});
 			await api.warmUpConnection(provider, domain);
 		}
 	}
-	console.log("✅ Warm-up phase complete.");
+}
+
+function stopTest() {
+	const state = getState();
+	if (!state.isTestRunning) return;
+	state.isTestRunning = false;
+	state.runPhase = "cancelled";
+	abortActiveRequests();
+	ui.showStatus("Stopping…");
 }
 
 async function startTest(queryCount) {
 	const state = getState();
 	if (state.isTestRunning) return;
 
-	console.log(
-		"🚀 Starting DNS benchmark with providers:",
-		state.providers.map((p) => p.name),
-	);
-	console.log("🌐 Testing domains:", state.domains);
-	console.log("🔢 Queries per URL:", queryCount);
-
 	state.isTestRunning = true;
+	state.runPhase = "warmup";
+	state.lastQueryCount = queryCount;
+	state.medianRanks = Object.create(null);
+	createAbortController();
+
 	dom.startScreen.classList.add("hidden");
 	dom.resultsScreen.classList.add("visible");
-	dom.runAgainButton.disabled = true;
+	ui.setRunningControls(true);
 
-	state.allProviderStats = {};
+	state.allProviderStats = Object.create(null);
 	state.queriedDomains.clear();
 	ui.createInitialUI();
+	ui.setHeroMode("progress");
+
+	const totals = progressTotals(queryCount);
 
 	try {
-		await warmUpAllProviders();
+		await warmUpAllProviders(totals);
 
 		if (state.isTestRunning) {
+			state.runPhase = "measure";
+			let measureOffset = totals.warmUps;
+
 			for (let i = 0; i < state.providers.length; i++) {
 				if (!state.isTestRunning) break;
 
 				const provider = state.providers[i];
-				await runTestForProvider(provider, queryCount);
+				await runTestForProvider(
+					provider,
+					queryCount,
+					measureOffset,
+					totals,
+				);
+				measureOffset += state.domains.length * queryCount;
 
-				if (i < state.providers.length - 1) {
+				if (i < state.providers.length - 1 && state.isTestRunning) {
 					await new Promise((resolve) => setTimeout(resolve, 500));
 				}
 			}
 		}
 
-		if (state.isTestRunning) {
-			console.log("🎉 All tests completed successfully");
-			ui.showStatus("Test complete. See comparison table below.");
-			ui.showProgress("");
-			ui.createComparisonTable(state.allProviderStats);
+		const completedProviders = Object.keys(state.allProviderStats).length;
+		const expectedProviders = state.providers.length;
 
-			const recommendation = stats.getRecommendation(state.allProviderStats);
-			ui.displayRecommendation(recommendation);
+		if (state.isTestRunning && completedProviders === expectedProviders) {
+			state.runPhase = "complete";
+			ui.setProgress({
+				phase: "Complete",
+				label: "Test complete",
+				detail: "See recommendation and comparison below.",
+				overallIndex: totals.overall,
+				overallTotal: totals.overall,
+			});
 
-			dom.exportCsvButton.style.display = "inline-block";
-		} else {
-			console.log("⏹️ Test was cancelled");
-			ui.showStatus("Test cancelled.");
-			ui.showProgress("");
+			state.medianRanks = stats.getMedianRanks(state.allProviderStats);
+			ui.createComparisonTable(
+				state.allProviderStats,
+				state.medianRanks,
+			);
+
+			const recommendation = stats.getRecommendation(
+				state.allProviderStats,
+			);
+			ui.displayRecommendation(recommendation, false);
+
+			dom.exportCsvButton.style.display = "inline-flex";
+			if (dom.shareResultsButton) {
+				dom.shareResultsButton.style.display = "inline-flex";
+			}
+		} else if (state.runPhase === "cancelled" || !state.isTestRunning) {
+			state.runPhase = "cancelled";
+			ui.setProgress({
+				phase: "Stopped",
+				label: "Test stopped",
+				detail: "Partial results are shown where available.",
+				overallIndex: 0,
+				overallTotal: 1,
+			});
+
+			if (completedProviders > 0) {
+				state.medianRanks = stats.getMedianRanks(
+					state.allProviderStats,
+				);
+				ui.createComparisonTable(
+					state.allProviderStats,
+					state.medianRanks,
+				);
+				const recommendation = stats.getRecommendation(
+					state.allProviderStats,
+				);
+				if (recommendation) {
+					ui.displayRecommendation(recommendation, true);
+				} else {
+					ui.showIncompleteState(
+						"<strong>Test stopped.</strong> Not enough data for a recommendation.",
+					);
+				}
+				dom.exportCsvButton.style.display = "inline-flex";
+				if (dom.shareResultsButton) {
+					dom.shareResultsButton.style.display = "inline-flex";
+				}
+			} else {
+				ui.showIncompleteState(
+					"<strong>Test stopped</strong> before any provider finished.",
+				);
+			}
 		}
 	} catch (error) {
-		console.error("💥 Error during test execution:", error);
-		ui.showStatus("Test failed due to an error. Check console for details.");
-		ui.showProgress("");
+		console.error("Error during test execution:", error);
+		ui.showStatus("Test failed due to an error. Check the console.");
+		ui.setProgress({
+			phase: "Error",
+			label: "Test failed",
+			detail: "See console for details.",
+			overallIndex: 0,
+			overallTotal: 1,
+		});
 	}
 
-	dom.runAgainButton.disabled = false;
+	ui.setRunningControls(false);
 	state.isTestRunning = false;
 }
 
 function initialize() {
-	console.log("🎬 Initializing DNSBench Pro");
 	loadSettings();
 	generateProviderColors();
+	ui.updateConfigSummary();
 	dom.startButton.disabled = false;
-	initModals(startTest);
+	initModals(startTest, stopTest);
 
-	// FIX: Updated "Run Again" button logic
 	dom.runAgainButton.addEventListener("click", () => {
-		console.log("🔄 Preparing for new test from results screen.");
-
-		// Reset UI elements to their initial state before showing the modal
 		ui.createInitialUI();
-		dom.recommendationSection.style.display = "none";
+		if (dom.recommendationSection) {
+			dom.recommendationSection.style.display = "none";
+		}
 		dom.exportCsvButton.style.display = "none";
-		dom.comparisonContent.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Run a test to see detailed comparison data</p>`;
-		dom.statusText.textContent = "";
-		dom.progressIndicator.textContent = "";
-
-		// Open the test selection modal directly
-		dom.durationModal.classList.add("visible");
+		if (dom.shareResultsButton) {
+			dom.shareResultsButton.style.display = "none";
+		}
+		dom.comparisonContent.innerHTML = `<p class="empty-state">Results will appear here after a full run.</p>`;
+		ui.setHeroMode("progress");
+		ui.setProgress({
+			phase: "Ready",
+			label: "Choose a test profile to begin.",
+			detail: "",
+			overallIndex: 0,
+			overallTotal: 1,
+		});
+		openDurationModal();
 	});
 
 	dom.exportCsvButton.addEventListener("click", () => {
-		console.log("📁 Exporting CSV");
 		ui.exportToCSV(getState().allProviderStats);
 	});
 
-	console.log("✅ DNSBench Pro initialized");
+	if (dom.shareResultsButton) {
+		dom.shareResultsButton.addEventListener("click", () => {
+			ui.shareResults();
+		});
+	}
 }
 
 document.addEventListener("DOMContentLoaded", initialize);

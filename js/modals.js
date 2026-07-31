@@ -1,41 +1,95 @@
-// frontend/js/modals.js
-// Manages the logic and event handling for all modals.
+// Modal logic: profiles, config, providers, domains, help.
 
 import * as dom from "./dom.js";
-import { getState, saveSettings, generateProviderColors } from "./config.js";
+import * as ui from "./ui.js";
+import { openModal, closeModal } from "./a11y.js";
+import {
+	getState,
+	saveSettings,
+	generateProviderColors,
+	normalizeProviders,
+	applyPreset,
+	resetSettings,
+	estimateTestDuration,
+	PRESETS,
+} from "./config.js";
 
-function openModal(modal) {
-	modal.classList.add("visible");
+let providerDraft = null;
+
+function isValidHttpsUrl(value) {
+	try {
+		const url = new URL(value);
+		return url.protocol === "https:";
+	} catch {
+		return false;
+	}
 }
 
-function closeModal(modal) {
-	modal.classList.remove("visible");
+function isValidDomain(value) {
+	const domain = value.trim();
+	if (domain.length < 1 || domain.length > 253) return false;
+
+	const labels = domain.split(".");
+	return (
+		labels.length >= 2 &&
+		labels.every(
+			(label) =>
+				label.length >= 1 &&
+				label.length <= 63 &&
+				/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label),
+		)
+	);
 }
 
 function openEditProviders() {
 	const state = getState();
+	providerDraft = state.providers.map((provider) => ({ ...provider }));
+	renderEditProviders();
+}
+
+function syncProviderDraftFromInputs() {
+	if (!providerDraft) return;
+
+	const valuesByIndex = {};
+	document.querySelectorAll(".provider-item input").forEach((item) => {
+		const index = Number(item.dataset.index);
+		if (!valuesByIndex[index]) valuesByIndex[index] = {};
+		valuesByIndex[index][item.dataset.field] = item.value;
+	});
+
+	providerDraft = providerDraft.map((provider, index) => ({
+		...provider,
+		...(valuesByIndex[index] || {}),
+	}));
+}
+
+function renderEditProviders() {
 	dom.providersList.innerHTML = "";
-	state.providers.forEach((provider, index) => {
+	if (dom.providersError) {
+		dom.providersError.hidden = true;
+		dom.providersError.textContent = "";
+	}
+
+	(providerDraft || []).forEach((provider, index) => {
 		const div = document.createElement("div");
 		div.className = "provider-item";
-		// --- FIX: Replaced simple inputs with a structured, labeled layout ---
 		div.innerHTML = `
             <div class="provider-inputs">
                 <div class="form-group">
                     <label for="provider-name-${index}">Provider Name</label>
-                    <input id="provider-name-${index}" type="text" placeholder="e.g., Cloudflare" value="${
-			provider.name
-		}" data-index="${index}" data-field="name">
+                    <input id="provider-name-${index}" type="text" placeholder="e.g., Cloudflare" value="${escapeAttr(
+						provider.name,
+					)}" data-index="${index}" data-field="name">
                 </div>
                 <div class="form-group">
                     <label for="provider-url-${index}">DoH URL</label>
-                    <input id="provider-url-${index}" type="text" placeholder="https://..." value="${
-			provider.url
-		}" data-index="${index}" data-field="url">
+                    <input id="provider-url-${index}" type="url" placeholder="https://..." value="${escapeAttr(
+						provider.url,
+					)}" data-index="${index}" data-field="url">
                 </div>
             </div>
-            <button class="remove-provider-btn" data-index="${index}" title="Remove Provider">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <button type="button" class="remove-provider-btn" data-index="${index}" title="Remove Provider" aria-label="Remove provider">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                 </svg>
             </button>
@@ -45,16 +99,29 @@ function openEditProviders() {
 	openModal(dom.editProvidersModal);
 }
 
+function escapeAttr(value) {
+	const entities = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
+
+	return String(value || "").replace(/[&<>"']/g, (character) => entities[character]);
+}
+
 function openEditDomains() {
 	const state = getState();
 	dom.domainsTextarea.value = state.domains.join("\n");
+	if (dom.domainsError) {
+		dom.domainsError.hidden = true;
+		dom.domainsError.textContent = "";
+	}
 	openModal(dom.editDomainsModal);
 }
 
 function saveProviders() {
-	const state = getState();
-	const newProviders = [];
-	// This selector still works with the new structure
 	const items = document.querySelectorAll(".provider-item input");
 	const providerData = {};
 
@@ -64,45 +131,122 @@ function saveProviders() {
 		providerData[index][item.dataset.field] = item.value.trim();
 	});
 
-	for (const index in providerData) {
-		const { name, url } = providerData[index];
-		if (name && url) {
-			newProviders.push({ name, url });
-		}
+	const draft = Object.values(providerData);
+	const errors = [];
+
+	if (draft.length === 0) {
+		errors.push("Add at least one provider.");
 	}
 
-	if (newProviders.length > 0) {
-		state.providers = newProviders;
-		saveSettings();
-		generateProviderColors();
-		closeModal(dom.editProvidersModal);
+	draft.forEach((p, i) => {
+		if (!p.name) errors.push(`Provider ${i + 1}: name is required.`);
+		if (!p.url) errors.push(`Provider ${i + 1}: DoH URL is required.`);
+		else if (!isValidHttpsUrl(p.url)) {
+			errors.push(`Provider ${i + 1}: URL must be https://`);
+		}
+	});
+
+	const seenNames = new Set();
+	draft.forEach((provider) => {
+		if (!provider.name) return;
+		const key = provider.name.toLowerCase();
+		if (seenNames.has(key)) {
+			errors.push(`Provider names must be unique: ${provider.name}`);
+		}
+		seenNames.add(key);
+	});
+
+	if (errors.length) {
+		if (dom.providersError) {
+			dom.providersError.hidden = false;
+			dom.providersError.textContent = errors[0];
+		}
+		return;
 	}
+
+	const state = getState();
+	const previousByUrl = Object.fromEntries(
+		state.providers.map((p) => [p.url, p]),
+	);
+	const normalized = normalizeProviders(
+		draft.map((p) => ({
+			...p,
+			...(previousByUrl[p.url] || {}),
+			name: p.name,
+			url: p.url,
+		})),
+	);
+
+	state.providers = normalized;
+	saveSettings();
+	generateProviderColors();
+	ui.updateConfigSummary();
+	providerDraft = null;
+	closeModal(dom.editProvidersModal);
 }
 
 function saveDomains() {
-	const state = getState();
 	const domains = dom.domainsTextarea.value
 		.split("\n")
 		.map((d) => d.trim())
 		.filter((d) => d.length > 0);
-	if (domains.length > 0) {
-		state.domains = domains;
-		saveSettings();
-		closeModal(dom.editDomainsModal);
+
+	const errors = [];
+	if (domains.length === 0) {
+		errors.push("Add at least one domain.");
 	}
+	const invalid = domains.find((d) => !isValidDomain(d));
+	if (invalid) {
+		errors.push(`Invalid domain: ${invalid}`);
+	}
+
+	if (errors.length) {
+		if (dom.domainsError) {
+			dom.domainsError.hidden = false;
+			dom.domainsError.textContent = errors[0];
+		}
+		return;
+	}
+
+	const state = getState();
+	state.domains = domains;
+	saveSettings();
+	ui.updateConfigSummary();
+	closeModal(dom.editDomainsModal);
 }
 
-export function initModals(startTestCallback) {
-	// General modal close behavior
-	[dom.durationModal, dom.editProvidersModal, dom.editDomainsModal].forEach(
-		(modal) => {
-			modal.addEventListener("click", (e) => {
-				if (e.target === modal) closeModal(modal);
-			});
-		},
-	);
+function openConfigModal() {
+	ui.updateConfigSummary();
+	openModal(dom.configModal);
+}
 
-	// Duration modal
+function openDurationModal() {
+	ui.refreshDurationEstimates(estimateTestDuration);
+	openModal(dom.durationModal);
+}
+
+function canStart() {
+	const state = getState();
+	return state.providers.length > 0 && state.domains.length > 0;
+}
+
+export function initModals(startTestCallback, stopTestCallback) {
+	[
+		dom.durationModal,
+		dom.editProvidersModal,
+		dom.editDomainsModal,
+		dom.helpModal,
+		dom.configModal,
+	].forEach((modal) => {
+		if (!modal) return;
+		modal.hidden = true;
+		modal.inert = true;
+		modal.setAttribute("aria-hidden", "true");
+		modal.addEventListener("click", (e) => {
+			if (e.target === modal) closeModal(modal);
+		});
+	});
+
 	dom.durationModal.addEventListener("click", (e) => {
 		const button = e.target.closest(".duration-btn");
 		if (button) {
@@ -112,36 +256,133 @@ export function initModals(startTestCallback) {
 		}
 	});
 
-	// Edit Providers modal
-	dom.editProvidersBtn.addEventListener("click", openEditProviders);
+	if (dom.cancelDurationBtn) {
+		dom.cancelDurationBtn.addEventListener("click", () =>
+			closeModal(dom.durationModal),
+		);
+	}
+
+	if (dom.editProvidersBtn) {
+		dom.editProvidersBtn.addEventListener("click", openEditProviders);
+	}
+	if (dom.openProvidersFromConfig) {
+		dom.openProvidersFromConfig.addEventListener("click", () => {
+			closeModal(dom.configModal);
+			openEditProviders();
+		});
+	}
+
 	dom.providersList.addEventListener("click", (e) => {
-		// --- FIX: Use .closest() for a more robust click target ---
 		const removeButton = e.target.closest(".remove-provider-btn");
 		if (removeButton) {
-			const state = getState();
+			syncProviderDraftFromInputs();
 			const index = parseInt(removeButton.dataset.index, 10);
-			state.providers.splice(index, 1);
-			openEditProviders(); // Refresh list
+			providerDraft.splice(index, 1);
+			renderEditProviders();
 		}
 	});
-	dom.addProviderBtn.addEventListener("click", () => {
-		getState().providers.push({ name: "", url: "" });
-		openEditProviders();
-	});
-	dom.saveProvidersBtn.addEventListener("click", saveProviders);
-	dom.cancelProvidersBtn.addEventListener("click", () =>
-		closeModal(dom.editProvidersModal),
-	);
 
-	// Edit Domains modal
-	dom.editDomainsBtn.addEventListener("click", openEditDomains);
+	dom.addProviderBtn.addEventListener("click", () => {
+		syncProviderDraftFromInputs();
+		providerDraft.push({
+			name: "",
+			url: "",
+			type: "post",
+			allowCors: false,
+		});
+		renderEditProviders();
+	});
+
+	dom.saveProvidersBtn.addEventListener("click", saveProviders);
+	dom.cancelProvidersBtn.addEventListener("click", () => {
+		providerDraft = null;
+		closeModal(dom.editProvidersModal);
+	});
+
+	if (dom.editDomainsBtn) {
+		dom.editDomainsBtn.addEventListener("click", openEditDomains);
+	}
+	if (dom.openDomainsFromConfig) {
+		dom.openDomainsFromConfig.addEventListener("click", () => {
+			closeModal(dom.configModal);
+			openEditDomains();
+		});
+	}
+
 	dom.saveDomainsBtn.addEventListener("click", saveDomains);
 	dom.cancelDomainsBtn.addEventListener("click", () =>
 		closeModal(dom.editDomainsModal),
 	);
 
-	// Main start button
-	dom.startButton.addEventListener("click", () => {
-		if (!dom.startButton.disabled) openModal(dom.durationModal);
+	if (dom.configureButton) {
+		dom.configureButton.addEventListener("click", openConfigModal);
+	}
+	if (dom.closeConfigBtn) {
+		dom.closeConfigBtn.addEventListener("click", () =>
+			closeModal(dom.configModal),
+		);
+	}
+
+	if (dom.helpButton) {
+		dom.helpButton.addEventListener("click", () => openModal(dom.helpModal));
+	}
+	if (dom.closeHelpBtn) {
+		dom.closeHelpBtn.addEventListener("click", () =>
+			closeModal(dom.helpModal),
+		);
+	}
+
+	document.querySelectorAll("[data-preset]").forEach((btn) => {
+		btn.addEventListener("click", () => {
+			const id = btn.dataset.preset;
+			if (applyPreset(id)) {
+				ui.updateConfigSummary();
+				const preset = PRESETS[id];
+				if (dom.configSummary) {
+					showToast(`Applied ${preset.label} preset`);
+				}
+			}
+		});
 	});
+
+	if (dom.resetDefaultsBtn) {
+		dom.resetDefaultsBtn.addEventListener("click", () => {
+			resetSettings();
+			ui.updateConfigSummary();
+			showToast("Reset to defaults");
+		});
+	}
+
+	dom.startButton.addEventListener("click", () => {
+		if (dom.startButton.disabled) return;
+		if (!canStart()) {
+			showToast("Add at least one provider and one domain.");
+			openConfigModal();
+			return;
+		}
+		openDurationModal();
+	});
+
+	if (dom.stopTestButton && stopTestCallback) {
+		dom.stopTestButton.addEventListener("click", stopTestCallback);
+	}
 }
+
+function showToast(message) {
+	let toast = document.getElementById("toast");
+	if (!toast) {
+		toast = document.createElement("div");
+		toast.id = "toast";
+		toast.className = "toast";
+		toast.setAttribute("role", "status");
+		document.body.appendChild(toast);
+	}
+	toast.textContent = message;
+	toast.classList.add("visible");
+	clearTimeout(showToast._timer);
+	showToast._timer = setTimeout(() => {
+		toast.classList.remove("visible");
+	}, 2200);
+}
+
+export { openDurationModal };
