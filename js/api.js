@@ -10,6 +10,12 @@ export async function warmUpConnection(provider, domain) {
 	await measureDohLatency(provider, domain, getAbortSignal());
 }
 
+export async function warmUpConnections(provider, domains) {
+	await Promise.all(
+		domains.map((domain) => warmUpConnection(provider, domain)),
+	);
+}
+
 export async function measureLatency(provider, domain, isUncached) {
 	const domainToQuery = isUncached
 		? `${Math.random().toString(36).substring(7)}.${domain}`
@@ -26,4 +32,10 @@ export async function measureLatency(provider, domain, isUncached) {
 		dnssecSupported: Math.random() > 0.1,
 		error: latency === null ? "failed" : null,
 	};
+}
+
+export function measureLatencyBatch(provider, domains, isUncached) {
+	return Promise.all(
+		domains.map((domain) => measureLatency(provider, domain, isUncached)),
+	);
 }

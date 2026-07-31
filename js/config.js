@@ -245,12 +245,12 @@ export function applyPreset(presetId) {
 
 export function estimateTestDuration(queryCount) {
 	const providers = state.providers.length;
-	const domains = state.domains.length;
-	const warmUps = providers * domains;
-	const measures = providers * domains * queryCount;
-	// ~120ms per warm-up attempt + ~150ms per measure (incl. delay) + gaps
-	const seconds = Math.round((warmUps * 0.12 + measures * 0.18 + providers * 0.5));
-	if (seconds < 45) return `~${Math.max(15, seconds)}s`;
+	// Domains are multi-pinged per provider and per query round.
+	// Keep a conservative estimate for network and browser scheduling overhead.
+	const warmUpSeconds = providers * 0.18;
+	const measureSeconds = providers * queryCount * 0.2;
+	const seconds = Math.round(warmUpSeconds + measureSeconds);
+	if (seconds < 60) return `~${Math.max(5, seconds)}s`;
 	if (seconds < 120) return `~${Math.round(seconds / 15) * 15}s`;
 	const minutes = seconds / 60;
 	if (minutes < 3) return `~${minutes.toFixed(1)} min`;

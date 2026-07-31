@@ -22,37 +22,47 @@ function progressTotals(queryCount) {
 
 async function runTestForProvider(provider, queriesPerUrl, progressOffset, totals) {
 	const state = getState();
+	const domains = [...state.domains];
 	const allResults = [];
 	let runningTotalLatency = 0;
 	let successfulQueryCount = 0;
 
-	const totalQueries = queriesPerUrl * state.domains.length;
+	const totalQueries = queriesPerUrl * domains.length;
 	let currentQueryIndex = 0;
 	const providerIndex =
 		state.providers.findIndex((p) => p.name === provider.name) + 1;
 
 	ui.showStatus(`Testing ${provider.name}…`);
 
-	for (const domain of state.domains) {
+	for (let round = 0; round < queriesPerUrl; round++) {
 		if (!state.isTestRunning) break;
 
-		for (let i = 0; i < queriesPerUrl; i++) {
-			if (!state.isTestRunning) break;
+		const isUncached = round === 0;
+		const roundStartIndex = round * domains.length;
+		ui.setProgress({
+			phase: "Measuring",
+			label: `${provider.name} (${providerIndex}/${state.providers.length})`,
+			detail: `Round ${round + 1}/${queriesPerUrl} · ${domains.length} sites in parallel`,
+			overallIndex: progressOffset + roundStartIndex,
+			overallTotal: totals.overall,
+		});
 
+		const results = await api.measureLatencyBatch(
+			provider,
+			domains,
+			isUncached,
+		);
+
+		results.forEach((result, index) => {
+			const domain = domains[index];
 			currentQueryIndex++;
-			const overallIndex = progressOffset + currentQueryIndex;
-
-			ui.setProgress({
-				phase: "Measuring",
-				label: `${provider.name} (${providerIndex}/${state.providers.length})`,
-				detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain}`,
-				overallIndex,
-				overallTotal: totals.overall,
-			});
-
-			const isUncached = i === 0;
-			const result = await api.measureLatency(provider, domain, isUncached);
 			allResults.push({ ...result, isUncached, domain });
+
+			const overallIndex = progressOffset + currentQueryIndex;
+			const resultDetail =
+				result.latency !== null
+					? `${result.latency.toFixed(0)} ms`
+					: "failed";
 
 			if (result.latency !== null) {
 				successfulQueryCount++;
@@ -60,28 +70,16 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 				const runningAverage =
 					runningTotalLatency / successfulQueryCount;
 				ui.updateMainGraph(provider.name, runningAverage);
-
-				ui.setProgress({
-					phase: "Measuring",
-					label: `${provider.name} (${providerIndex}/${state.providers.length})`,
-					detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain} · ${result.latency.toFixed(
-						0,
-					)} ms`,
-					overallIndex,
-					overallTotal: totals.overall,
-				});
-			} else {
-				ui.setProgress({
-					phase: "Measuring",
-					label: `${provider.name} (${providerIndex}/${state.providers.length})`,
-					detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain} · failed`,
-					overallIndex,
-					overallTotal: totals.overall,
-				});
 			}
 
-			await new Promise((resolve) => setTimeout(resolve, 100));
-		}
+			ui.setProgress({
+				phase: "Measuring",
+				label: `${provider.name} (${providerIndex}/${state.providers.length})`,
+				detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain} · ${resultDetail}`,
+				overallIndex,
+				overallTotal: totals.overall,
+			});
+		});
 	}
 
 	if (allResults.length === 0) return;
@@ -128,6 +126,7 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 
 async function warmUpAllProviders(totals) {
 	const state = getState();
+	const domains = [...state.domains];
 	state.runPhase = "warmup";
 	ui.setProgress({
 		phase: "Warm-up",
@@ -140,18 +139,26 @@ async function warmUpAllProviders(totals) {
 	let warmUpCount = 0;
 
 	for (const provider of state.providers) {
-		for (const domain of state.domains) {
-			if (!getState().isTestRunning) return;
-			warmUpCount++;
-			ui.setProgress({
-				phase: "Warm-up",
-				label: "Priming DNS connections…",
-				detail: `${provider.name} · ${domain} (${warmUpCount}/${totals.warmUps})`,
-				overallIndex: warmUpCount,
-				overallTotal: totals.overall,
-			});
-			await api.warmUpConnection(provider, domain);
-		}
+		if (!getState().isTestRunning) return;
+
+		ui.setProgress({
+			phase: "Warm-up",
+			label: "Priming DNS connections…",
+			detail: `${provider.name} · ${domains.length} sites in parallel`,
+			overallIndex: warmUpCount,
+			overallTotal: totals.overall,
+		});
+
+		await api.warmUpConnections(provider, domains);
+		warmUpCount += domains.length;
+
+		ui.setProgress({
+			phase: "Warm-up",
+			label: "Priming DNS connections…",
+			detail: `${provider.name} · ready (${warmUpCount}/${totals.warmUps})`,
+			overallIndex: warmUpCount,
+			overallTotal: totals.overall,
+		});
 	}
 }
 
@@ -203,10 +210,6 @@ async function startTest(queryCount) {
 					totals,
 				);
 				measureOffset += state.domains.length * queryCount;
-
-				if (i < state.providers.length - 1 && state.isTestRunning) {
-					await new Promise((resolve) => setTimeout(resolve, 500));
-				}
 			}
 		}
 

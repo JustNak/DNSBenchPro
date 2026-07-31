@@ -6,6 +6,7 @@
 
 * **Client-side only** — queries run from your browser; this site does not log your IP or results.
 * **Test profiles** — Quick, Balanced, Thorough, or Comprehensive query depths with time estimates.
+* **Multi-ping execution** — independent sites are queried in parallel for faster runs without changing the sample count.
 * **Live progress** — warm-up vs measuring phases, determinate progress, and Stop.
 * **Configurable** — edit providers and sites, apply presets, or reset to defaults before you run.
 * **Clear results** — recommendation hero, live latency bars, cached vs uncached breakdown, sortable comparison with stable median ranks, CSV export, and share/copy summary.
@@ -20,7 +21,7 @@
 
 ## How it works
 
-The app measures DoH latency against a list of public resolvers and popular domains. A warm-up pass primes connections so cold TCP/TLS handshakes do not dominate the first timed queries. The first query per domain uses a random subdomain (uncached path); later queries measure warmer/cached responses.
+The app measures DoH latency against a list of public resolvers and popular domains. A warm-up pass primes each provider’s connections, with the sites probed in parallel so cold TCP/TLS handshakes do not dominate the first timed queries. Measurement rounds also query all sites for one provider in parallel; providers and rounds remain sequential so the first query per domain still uses a random subdomain (uncached path), while later queries measure warmer/cached responses.
 
 ## Local development
 
