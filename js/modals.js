@@ -240,6 +240,7 @@ export function initModals(startTestCallback, stopTestCallback) {
 	].forEach((modal) => {
 		if (!modal) return;
 		modal.hidden = true;
+		modal.inert = true;
 		modal.setAttribute("aria-hidden", "true");
 		modal.addEventListener("click", (e) => {
 			if (e.target === modal) closeModal(modal);

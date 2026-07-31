@@ -41,6 +41,7 @@ export function openModal(modal, { initialFocus, retainFocus = false } = {}) {
 
 	activeModal = modal;
 	modal.hidden = false;
+	modal.inert = false;
 	modal.classList.add("visible");
 	modal.setAttribute("aria-hidden", "false");
 
@@ -96,6 +97,7 @@ export function closeModal(modal) {
 
 	target.classList.remove("visible");
 	target.hidden = true;
+	target.inert = true;
 	target.setAttribute("aria-hidden", "true");
 
 	if (activeModal === target) {
