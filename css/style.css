@@ -15,9 +15,9 @@
 	--danger: #e86a6a;
 	--radius: 8px;
 	--radius-lg: 14px;
-	--font-display: "Space Grotesk", sans-serif;
-	--font-body: "IBM Plex Sans", sans-serif;
-	--font-mono: "IBM Plex Mono", ui-monospace, monospace;
+	--font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 	--shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.35);
 
 	/* legacy aliases used in older markup hooks */

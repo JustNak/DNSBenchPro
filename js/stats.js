@@ -1,5 +1,17 @@
 // Statistical helpers for benchmark results.
 
+function escapeHtml(value) {
+	const entities = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
+
+	return String(value).replace(/[&<>"']/g, (character) => entities[character]);
+}
+
 export function calculateStats(results) {
 	const successful = results.filter((r) => r.latency !== null);
 	if (successful.length === 0) {
@@ -57,7 +69,7 @@ export function getMedianRanks(allProviderStats) {
 		.filter(([, stats]) => stats.count > 0)
 		.sort((a, b) => a[1].median - b[1].median);
 
-	const ranks = {};
+	const ranks = Object.create(null);
 	ranked.forEach(([name], index) => {
 		ranks[name] = index + 1;
 	});
@@ -82,16 +94,19 @@ export function getRecommendation(allProviderStats) {
 	if (scored.length > 0) {
 		const winner = scored[0];
 		const runnerUp = scored[1];
+		const winnerLabel = escapeHtml(winner.name);
 		let delta = "";
 		if (runnerUp) {
 			const gap = runnerUp.stats.median - winner.stats.median;
 			if (gap > 0.5) {
-				delta = ` That is <strong>${gap.toFixed(0)} ms</strong> faster (median) than ${runnerUp.name}.`;
+				delta = ` That is <strong>${gap.toFixed(0)} ms</strong> faster (median) than ${escapeHtml(
+					runnerUp.name,
+				)}.`;
 			}
 		}
 		return {
 			html: `Based on speed and reliability, <strong>${
-				winner.name
+				winnerLabel
 			}</strong> is the top performer. Typical (median) response <strong>${winner.stats.median.toFixed(
 				0,
 			)} ms</strong>, average <strong>${winner.stats.average.toFixed(

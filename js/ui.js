@@ -4,6 +4,22 @@ import * as dom from "./dom.js";
 import { getState, MAX_LATENCY } from "./config.js";
 import { buildShareSummary } from "./stats.js";
 
+function escapeHtml(value) {
+	const entities = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
+
+	return String(value).replace(/[&<>"']/g, (character) => entities[character]);
+}
+
+function providerKey(name) {
+	return encodeURIComponent(String(name));
+}
+
 export function updateConfigSummary() {
 	const state = getState();
 	const text = `${state.providers.length} providers · ${state.domains.length} sites`;
@@ -114,11 +130,11 @@ export function createInitialUI() {
 
 	state.providers.forEach(({ name }) => {
 		const color = state.providerColors[name];
-		const safeName = name.replace(/\s+/g, "-");
+		const safeName = providerKey(name);
 
 		dom.mainGraphContainer.innerHTML += `
             <div class="graph-bar-wrapper" id="wrapper-${safeName}">
-                <div class="dns-name">${name}</div>
+                <div class="dns-name">${escapeHtml(name)}</div>
                 <div class="bar-container">
                     <div class="bar" id="bar-${safeName}" style="background-color: ${color};"></div>
                 </div>
@@ -130,7 +146,7 @@ export function createInitialUI() {
                 <div class="card-header">
                     <div class="card-title-section">
                         <span class="card-color-dot" style="background-color: ${color};"></span>
-                        <h3 class="card-title">${name}</h3>
+                        <h3 class="card-title">${escapeHtml(name)}</h3>
                     </div>
                     <div class="card-stats" id="stats-${safeName}">Waiting…</div>
                 </div>
@@ -148,7 +164,7 @@ export function createInitialUI() {
 }
 
 export function displayDetailedBreakdown(providerName, breakdownData) {
-	const safeProviderName = providerName.replace(/\s+/g, "-");
+	const safeProviderName = providerKey(providerName);
 	const container = document.getElementById(`results-${safeProviderName}`);
 	if (!container) return;
 
@@ -174,7 +190,7 @@ export function displayDetailedBreakdown(providerName, breakdownData) {
 				: `<span class="detailed-latency na">—</span>`;
 
 		row.innerHTML = `
-            <strong class="domain-name">${domain}</strong>
+            <strong class="domain-name">${escapeHtml(domain)}</strong>
             <div class="latency-pair">
                 ${cachedAvgHtml}
                 ${uncachedAvgHtml}
@@ -185,7 +201,7 @@ export function displayDetailedBreakdown(providerName, breakdownData) {
 }
 
 export function updateMainGraph(name, latency) {
-	const safeName = name.replace(/\s+/g, "-");
+	const safeName = providerKey(name);
 	const bar = document.getElementById(`bar-${safeName}`);
 	const latencyEl = document.getElementById(`latency-${safeName}`);
 	if (bar && latencyEl) {
@@ -196,7 +212,7 @@ export function updateMainGraph(name, latency) {
 }
 
 export function updateCardStats(name, allStats) {
-	const safeName = name.replace(/\s+/g, "-");
+	const safeName = providerKey(name);
 	const statsEl = document.getElementById(`stats-${safeName}`);
 	if (statsEl && allStats.count > 0) {
 		statsEl.innerHTML = `Median: <strong>${allStats.median.toFixed(
@@ -206,7 +222,7 @@ export function updateCardStats(name, allStats) {
 }
 
 export function showCard(name) {
-	const safeName = name.replace(/\s+/g, "-");
+	const safeName = providerKey(name);
 	const card = document.getElementById(`card-${safeName}`);
 	if (card) card.classList.add("visible");
 }
@@ -260,7 +276,14 @@ export function createComparisonTable(allProviderStats, medianRanks) {
 	function attachHeaderListeners() {
 		document
 			.querySelectorAll(".comparison-table th[data-sort-key]")
-			.forEach((th) => th.addEventListener("click", handleHeaderClick));
+			.forEach((th) => {
+				th.addEventListener("click", handleHeaderClick);
+				th.addEventListener("keydown", (e) => {
+					if (e.key !== "Enter" && e.key !== " ") return;
+					e.preventDefault();
+					handleHeaderClick(e);
+				});
+			});
 	}
 
 	function renderTable() {
@@ -308,7 +331,7 @@ export function createComparisonTable(allProviderStats, medianRanks) {
 					state.providerColors[stats.name]
 				};">
                     <td><span class="rank-badge ${rankClass}">#${rank}</span></td>
-                    <td class="provider-cell">${stats.name}</td>
+                    <td class="provider-cell">${escapeHtml(stats.name)}</td>
                     <td class="emphasis">${stats.median.toFixed(1)} ms</td>
                     <td>${stats.average.toFixed(1)} ms</td>
                     <td class="cached-cell">${stats.cachedAvg.toFixed(1)} ms</td>
@@ -339,11 +362,17 @@ export function displayRecommendation(recommendation, incomplete = false) {
 		: recommendation.html;
 
 	if (dom.recommendationMeta) {
-		dom.recommendationMeta.innerHTML = `
-			<span class="meta-pill">${recommendation.winnerName}</span>
-			<span class="meta-pill">${recommendation.median.toFixed(0)} ms median</span>
-			<span class="meta-pill">${recommendation.reliability.toFixed(0)}% reliable</span>
-		`;
+		dom.recommendationMeta.replaceChildren();
+		[
+			recommendation.winnerName,
+			`${recommendation.median.toFixed(0)} ms median`,
+			`${recommendation.reliability.toFixed(0)}% reliable`,
+		].forEach((text) => {
+			const pill = document.createElement("span");
+			pill.className = "meta-pill";
+			pill.textContent = text;
+			dom.recommendationMeta.appendChild(pill);
+		});
 	}
 
 	setHeroMode("recommendation");
@@ -359,8 +388,21 @@ export function showIncompleteState(message) {
 }
 
 export function exportToCSV(allProviderStats) {
-	const headers =
-		"Provider,Avg Latency,Median Latency,Std Deviation,Uncached Avg,Cached Avg,Reliability,DNSSEC Support";
+	const escapeCsvCell = (value) => {
+		let text = String(value);
+		if (/^[=+\-@]/.test(text)) text = `'${text}`;
+		return `"${text.replace(/"/g, '""')}"`;
+	};
+	const headers = [
+		"Provider",
+		"Avg Latency",
+		"Median Latency",
+		"Std Deviation",
+		"Uncached Avg",
+		"Cached Avg",
+		"Reliability",
+		"DNSSEC Support",
+	].map(escapeCsvCell);
 	const rows = Object.entries(allProviderStats).map(([name, stats]) =>
 		[
 			name,
@@ -371,12 +413,17 @@ export function exportToCSV(allProviderStats) {
 			stats.cachedAvg.toFixed(2),
 			stats.reliability.toFixed(2),
 			stats.dnssec.toFixed(2),
-		].join(","),
+		]
+			.map(escapeCsvCell)
+			.join(","),
 	);
 
-	const csv = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+	const csv = [headers.join(","), ...rows].join("\n");
 	const link = document.createElement("a");
-	link.setAttribute("href", encodeURI(csv));
+	link.setAttribute(
+		"href",
+		"data:text/csv;charset=utf-8," + encodeURIComponent(csv),
+	);
 	link.setAttribute("download", "dns_benchmark_results.csv");
 	document.body.appendChild(link);
 	link.click();
