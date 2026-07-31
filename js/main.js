@@ -84,7 +84,7 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 		}
 	}
 
-	if (!state.isTestRunning) return;
+	if (allResults.length === 0) return;
 
 	const allStats = stats.calculateStats(allResults);
 	state.allProviderStats[provider.name] = allStats;
@@ -171,14 +171,14 @@ async function startTest(queryCount) {
 	state.isTestRunning = true;
 	state.runPhase = "warmup";
 	state.lastQueryCount = queryCount;
-	state.medianRanks = {};
+	state.medianRanks = Object.create(null);
 	createAbortController();
 
 	dom.startScreen.classList.add("hidden");
 	dom.resultsScreen.classList.add("visible");
 	ui.setRunningControls(true);
 
-	state.allProviderStats = {};
+	state.allProviderStats = Object.create(null);
 	state.queriedDomains.clear();
 	ui.createInitialUI();
 	ui.setHeroMode("progress");

@@ -14,6 +14,8 @@ import {
 	PRESETS,
 } from "./config.js";
 
+let providerDraft = null;
+
 function isValidHttpsUrl(value) {
 	try {
 		const url = new URL(value);
@@ -24,18 +26,51 @@ function isValidHttpsUrl(value) {
 }
 
 function isValidDomain(value) {
-	return /^(?=.{1,253}$)(?!-)[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(value.trim());
+	const domain = value.trim();
+	if (domain.length < 1 || domain.length > 253) return false;
+
+	const labels = domain.split(".");
+	return (
+		labels.length >= 2 &&
+		labels.every(
+			(label) =>
+				label.length >= 1 &&
+				label.length <= 63 &&
+				/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label),
+		)
+	);
 }
 
 function openEditProviders() {
 	const state = getState();
+	providerDraft = state.providers.map((provider) => ({ ...provider }));
+	renderEditProviders();
+}
+
+function syncProviderDraftFromInputs() {
+	if (!providerDraft) return;
+
+	const valuesByIndex = {};
+	document.querySelectorAll(".provider-item input").forEach((item) => {
+		const index = Number(item.dataset.index);
+		if (!valuesByIndex[index]) valuesByIndex[index] = {};
+		valuesByIndex[index][item.dataset.field] = item.value;
+	});
+
+	providerDraft = providerDraft.map((provider, index) => ({
+		...provider,
+		...(valuesByIndex[index] || {}),
+	}));
+}
+
+function renderEditProviders() {
 	dom.providersList.innerHTML = "";
 	if (dom.providersError) {
 		dom.providersError.hidden = true;
 		dom.providersError.textContent = "";
 	}
 
-	state.providers.forEach((provider, index) => {
+	(providerDraft || []).forEach((provider, index) => {
 		const div = document.createElement("div");
 		div.className = "provider-item";
 		div.innerHTML = `
@@ -61,14 +96,19 @@ function openEditProviders() {
         `;
 		dom.providersList.appendChild(div);
 	});
-	openModal(dom.editProvidersModal, { retainFocus: true });
+	openModal(dom.editProvidersModal);
 }
 
 function escapeAttr(value) {
-	return String(value || "")
-		.replace(/&/g, "&amp;")
-		.replace(/"/g, "&quot;")
-		.replace(/</g, "&lt;");
+	const entities = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': "&quot;",
+		"'": "&#39;",
+	};
+
+	return String(value || "").replace(/[&<>"']/g, (character) => entities[character]);
 }
 
 function openEditDomains() {
@@ -106,6 +146,16 @@ function saveProviders() {
 		}
 	});
 
+	const seenNames = new Set();
+	draft.forEach((provider) => {
+		if (!provider.name) return;
+		const key = provider.name.toLowerCase();
+		if (seenNames.has(key)) {
+			errors.push(`Provider names must be unique: ${provider.name}`);
+		}
+		seenNames.add(key);
+	});
+
 	if (errors.length) {
 		if (dom.providersError) {
 			dom.providersError.hidden = false;
@@ -131,6 +181,7 @@ function saveProviders() {
 	saveSettings();
 	generateProviderColors();
 	ui.updateConfigSummary();
+	providerDraft = null;
 	closeModal(dom.editProvidersModal);
 }
 
@@ -188,6 +239,7 @@ export function initModals(startTestCallback, stopTestCallback) {
 		dom.configModal,
 	].forEach((modal) => {
 		if (!modal) return;
+		modal.hidden = true;
 		modal.setAttribute("aria-hidden", "true");
 		modal.addEventListener("click", (e) => {
 			if (e.target === modal) closeModal(modal);
@@ -222,27 +274,29 @@ export function initModals(startTestCallback, stopTestCallback) {
 	dom.providersList.addEventListener("click", (e) => {
 		const removeButton = e.target.closest(".remove-provider-btn");
 		if (removeButton) {
-			const state = getState();
+			syncProviderDraftFromInputs();
 			const index = parseInt(removeButton.dataset.index, 10);
-			state.providers.splice(index, 1);
-			openEditProviders();
+			providerDraft.splice(index, 1);
+			renderEditProviders();
 		}
 	});
 
 	dom.addProviderBtn.addEventListener("click", () => {
-		getState().providers.push({
+		syncProviderDraftFromInputs();
+		providerDraft.push({
 			name: "",
 			url: "",
 			type: "post",
 			allowCors: false,
 		});
-		openEditProviders();
+		renderEditProviders();
 	});
 
 	dom.saveProvidersBtn.addEventListener("click", saveProviders);
-	dom.cancelProvidersBtn.addEventListener("click", () =>
-		closeModal(dom.editProvidersModal),
-	);
+	dom.cancelProvidersBtn.addEventListener("click", () => {
+		providerDraft = null;
+		closeModal(dom.editProvidersModal);
+	});
 
 	if (dom.editDomainsBtn) {
 		dom.editDomainsBtn.addEventListener("click", openEditDomains);

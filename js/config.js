@@ -118,12 +118,12 @@ export const PRESETS = {
 const state = {
 	providers: DEFAULT_PROVIDERS.map((p) => ({ ...p })),
 	domains: [...DEFAULT_DOMAINS],
-	providerColors: {},
+	providerColors: Object.create(null),
 	isTestRunning: false,
-	allProviderStats: {},
+	allProviderStats: Object.create(null),
 	queriedDomains: new Set(),
 	runPhase: "idle", // idle | warmup | measure | complete | cancelled
-	medianRanks: {},
+	medianRanks: Object.create(null),
 	lastQueryCount: null,
 	abortController: null,
 };
@@ -134,6 +134,19 @@ export function getState() {
 
 function cloneProviders(providers) {
 	return providers.map((p) => ({ ...p }));
+}
+
+function makeUniqueProviderName(name, usedNames) {
+	let candidate = name;
+	let suffix = 2;
+
+	while (usedNames.has(candidate.toLowerCase())) {
+		candidate = `${name} (${suffix})`;
+		suffix++;
+	}
+
+	usedNames.add(candidate.toLowerCase());
+	return candidate;
 }
 
 function knownProviderMeta(url) {
@@ -151,6 +164,8 @@ function knownProviderMeta(url) {
 }
 
 export function normalizeProviders(providers) {
+	const usedNames = new Set();
+
 	return providers
 		.map((p) => {
 			const name = (p.name || "").trim();
@@ -158,7 +173,7 @@ export function normalizeProviders(providers) {
 			if (!name || !url) return null;
 			const meta = knownProviderMeta(url);
 			return {
-				name,
+				name: makeUniqueProviderName(name, usedNames),
 				url,
 				type: p.type || meta.type,
 				allowCors:
@@ -255,7 +270,7 @@ export function generateProviderColors() {
 		"#f368e0",
 		"#ff9f43",
 	];
-	state.providerColors = {};
+	state.providerColors = Object.create(null);
 	state.providers.forEach(({ name }, index) => {
 		state.providerColors[name] =
 			predefinedColors[index % predefinedColors.length];
