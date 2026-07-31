@@ -1,35 +1,38 @@
 # [DNS Bench Pro](https://dnsbenchpro.netlify.app)
 
-**[DNS Bench Pro](https://dnsbenchpro.netlify.app)** is a simple, client-side website tool designed to help you determine the closest and fastest DNS provider near your local area.
+**DNS Bench Pro** is a client-side DNS-over-HTTPS (DoH) benchmark. It helps you find the closest, fastest public resolver from your current network — privately, in the browser.
 
-## About the Name
+## Features
 
-The name "DNS Bench Pro" was chosen for its straightforwardness and simplicity. While "Pro" just popped up in my head.
+* **Client-side only** — queries run from your browser; this site does not log your IP or results.
+* **Test profiles** — Quick, Balanced, Thorough, or Comprehensive query depths with time estimates.
+* **Live progress** — warm-up vs measuring phases, determinate progress, and Stop.
+* **Configurable** — edit providers and sites, apply presets, or reset to defaults before you run.
+* **Clear results** — recommendation hero, live latency bars, cached vs uncached breakdown, sortable comparison with stable median ranks, CSV export, and share/copy summary.
 
-## Introduction
+## How to use
 
-This tool provides a straightforward way to benchmark various DNS providers from your current location. It does this by running all queries directly from your web browser, ensuring your privacy.
+1. Open [DNS Bench Pro](https://dnsbenchpro.netlify.app).
+2. Optionally click **Configure** to change providers, sites, or presets.
+3. Click **Start test** and choose a profile.
+4. Watch live results; use **Stop test** if you need to cancel.
+5. Review the recommendation, then export or share if you want.
 
-## Key Features
+## How it works
 
-*   **Client-Side Operation:** All DNS queries are initiated and processed entirely within your web browser. This means the tool relies solely on your client's capabilities.
-*   **Privacy-Focused:** Your IP address and browsing activity are never logged or stored by this tool. There is no server-side tracking whatsoever.
-*   **Local Performance Testing:** Helps you identify the DNS provider that offers the lowest latency from your specific geographical area, giving you optimal browsing speeds.
-*   **Simple & Intuitive:** Designed for ease of use, providing quick and understandable results with minimal fuss.
+The app measures DoH latency against a list of public resolvers and popular domains. A warm-up pass primes connections so cold TCP/TLS handshakes do not dominate the first timed queries. The first query per domain uses a random subdomain (uncached path); later queries measure warmer/cached responses.
 
-## How It Works
+## Local development
 
-[DNS Bench Pro](https://dnsbenchpro.netlify.app) leverages JavaScript to perform DNS lookups against a curated list of common, publicly available DNS providers. By accurately measuring the response time for each query, it helps you identify which provider offers the best performance and lowest latency relative to your current network location.
+Serve the repo root over HTTP (ES modules require a server):
 
-## Getting Started
+```bash
+npx serve .
+# or: python3 -m http.server 8080
+```
 
-Using [DNS Bench Pro](https://dnsbenchpro.netlify.app) is incredibly simple:
+Then open the printed local URL.
 
-1.  Navigate to the [DNS Bench Pro website](https://dnsbenchpro.netlify.app).
-2.  The tool will automatically begin benchmarking the listed DNS providers.
-3.  Results will be displayed directly on the page, showing the response times for each provider.
+## Inspired by
 
----
-
-## Inspired By:
-[dnsspeedtest](https://github.com/BrainicHQ/DoHSpeedTest) by **BrainicHQ**
+[DoHSpeedTest / dnsspeedtest](https://github.com/BrainicHQ/DoHSpeedTest) by **BrainicHQ**

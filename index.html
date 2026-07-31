@@ -2,76 +2,229 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>DNS Bench Pro — Find your fastest DNS</title>
 		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1.0"
+			name="description"
+			content="Client-side DNS-over-HTTPS benchmark. Compare resolver latency, reliability, and cached vs uncached performance from your browser — privately."
 		/>
-		<title>DNSBench Pro</title>
+		<meta property="og:title" content="DNS Bench Pro" />
+		<meta
+			property="og:description"
+			content="Find the fastest DNS resolver from where you are. Private, browser-only DoH benchmarks."
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://dnsbenchpro.netlify.app" />
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content="DNS Bench Pro" />
+		<meta
+			name="twitter:description"
+			content="Find the fastest DNS resolver from where you are."
+		/>
+		<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+			rel="stylesheet"
+		/>
 		<link rel="stylesheet" href="css/style.css" />
 	</head>
 	<body>
-		<!-- Duration Modal -->
-		<div id="duration-modal" class="modal-overlay">
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<!-- Duration / profile modal -->
+		<div
+			id="duration-modal"
+			class="modal-overlay"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="duration-title"
+			aria-hidden="true"
+		>
 			<div class="modal-content">
 				<div class="modal-header">
-					<h3>Select Test Profile</h3>
+					<h3 id="duration-title">Select test profile</h3>
+					<p class="modal-subtitle">
+						More queries means steadier averages and a longer run.
+					</p>
 				</div>
 				<div class="modal-body">
 					<div class="duration-options">
-						<button class="duration-btn" data-queries="3">
-							Quick Test <span>3 queries/url</span>
+						<button
+							type="button"
+							class="duration-btn"
+							data-queries="3"
+							data-initial-focus
+						>
+							<span class="duration-label">Quick</span>
+							<span class="duration-meta">3 queries/url</span>
+							<span class="duration-estimate" data-estimate>~30s</span>
+							<span class="duration-hint">Best for a fast check</span>
 						</button>
-						<button class="duration-btn" data-queries="6">
-							Standard Test <span>6 queries/url</span>
+						<button type="button" class="duration-btn" data-queries="6">
+							<span class="duration-label">Balanced</span>
+							<span class="duration-meta">6 queries/url</span>
+							<span class="duration-estimate" data-estimate>~1 min</span>
+							<span class="duration-hint">Recommended default</span>
 						</button>
-						<button class="duration-btn" data-queries="18">
-							Extended Test <span>18 queries/url</span>
+						<button type="button" class="duration-btn" data-queries="18">
+							<span class="duration-label">Thorough</span>
+							<span class="duration-meta">18 queries/url</span>
+							<span class="duration-estimate" data-estimate>~3 min</span>
+							<span class="duration-hint">More stable medians</span>
 						</button>
-						<button class="duration-btn" data-queries="36">
-							Comprehensive <span>36 queries/url</span>
+						<button type="button" class="duration-btn" data-queries="36">
+							<span class="duration-label">Comprehensive</span>
+							<span class="duration-meta">36 queries/url</span>
+							<span class="duration-estimate" data-estimate>~6 min</span>
+							<span class="duration-hint">Highest confidence</span>
 						</button>
 					</div>
+				</div>
+				<div class="modal-footer">
+					<button
+						type="button"
+						class="modal-btn secondary"
+						id="cancel-duration-btn"
+					>
+						Cancel
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Config modal -->
+		<div
+			id="config-modal"
+			class="modal-overlay"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="config-title"
+			aria-hidden="true"
+		>
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="config-title">Configure benchmark</h3>
+					<p class="modal-subtitle">
+						Choose providers and sites before you run.
+					</p>
+				</div>
+				<div class="modal-body">
+					<div class="config-stats">
+						<div class="config-stat">
+							<span class="config-stat-value" id="config-providers-count"
+								>6</span
+							>
+							<span class="config-stat-label">Providers</span>
+						</div>
+						<div class="config-stat">
+							<span class="config-stat-value" id="config-domains-count"
+								>6</span
+							>
+							<span class="config-stat-label">Sites</span>
+						</div>
+					</div>
+
+					<div class="preset-row" role="group" aria-label="Presets">
+						<button type="button" class="preset-btn" data-preset="default">
+							Default
+						</button>
+						<button type="button" class="preset-btn" data-preset="privacy">
+							Privacy
+						</button>
+						<button type="button" class="preset-btn" data-preset="minimal">
+							Minimal
+						</button>
+						<button type="button" class="preset-btn ghost" id="reset-defaults-btn">
+							Reset
+						</button>
+					</div>
+
+					<div class="config-actions">
+						<button
+							type="button"
+							class="modal-btn secondary"
+							id="open-providers-from-config"
+						>
+							Edit providers
+						</button>
+						<button
+							type="button"
+							class="modal-btn secondary"
+							id="open-domains-from-config"
+						>
+							Edit sites
+						</button>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="modal-btn primary" id="close-config-btn">
+						Done
+					</button>
 				</div>
 			</div>
 		</div>
 
 		<!-- Edit Providers Modal -->
-		<div id="edit-providers-modal" class="modal-overlay">
-			<div class="modal-content">
+		<div
+			id="edit-providers-modal"
+			class="modal-overlay"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="providers-title"
+			aria-hidden="true"
+		>
+			<div class="modal-content modal-wide">
 				<div class="modal-header">
-					<h3>Edit DNS Providers</h3>
+					<h3 id="providers-title">Edit DNS providers</h3>
 				</div>
 				<div class="modal-body">
+					<p id="providers-error" class="form-error" hidden></p>
 					<div class="edit-form">
 						<div id="providers-list"></div>
-						<button class="add-provider-btn" id="add-provider-btn">
-							+ Add Provider
+						<button type="button" class="add-provider-btn" id="add-provider-btn">
+							+ Add provider
 						</button>
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button class="modal-btn secondary" id="cancel-providers-btn">
+					<button
+						type="button"
+						class="modal-btn secondary"
+						id="cancel-providers-btn"
+					>
 						Cancel
 					</button>
-					<button class="modal-btn primary" id="save-providers-btn">
-						Save Changes
+					<button
+						type="button"
+						class="modal-btn primary"
+						id="save-providers-btn"
+					>
+						Save changes
 					</button>
 				</div>
 			</div>
 		</div>
 
 		<!-- Edit Domains Modal -->
-		<div id="edit-domains-modal" class="modal-overlay">
+		<div
+			id="edit-domains-modal"
+			class="modal-overlay"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="domains-title"
+			aria-hidden="true"
+		>
 			<div class="modal-content">
 				<div class="modal-header">
-					<h3>Edit Test Domains</h3>
+					<h3 id="domains-title">Edit test domains</h3>
 				</div>
 				<div class="modal-body">
+					<p id="domains-error" class="form-error" hidden></p>
 					<div class="edit-form">
 						<div class="form-group">
-							<label for="domains-textarea">
-								Domains to test (one per line):
-							</label>
+							<label for="domains-textarea">Domains to test (one per line)</label>
 							<textarea
 								id="domains-textarea"
 								rows="10"
@@ -81,164 +234,260 @@
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button class="modal-btn secondary" id="cancel-domains-btn">
+					<button
+						type="button"
+						class="modal-btn secondary"
+						id="cancel-domains-btn"
+					>
 						Cancel
 					</button>
-					<button class="modal-btn primary" id="save-domains-btn">
-						Save Changes
+					<button type="button" class="modal-btn primary" id="save-domains-btn">
+						Save changes
 					</button>
 				</div>
 			</div>
 		</div>
 
-		<div id="start-screen">
-			<div class="container">
-				<h1>DNSBench Pro</h1>
-				<p
-					style="
-						margin-bottom: 2rem;
-						color: var(--text-muted);
-						font-size: 1.1rem;
-					"
-				>
-					Test and compare DNS resolver performance, reliability, and
-					features.
-				</p>
-				<button id="start-button" class="action-button">
-					Start Test
-				</button>
+		<!-- Help modal -->
+		<div
+			id="help-modal"
+			class="modal-overlay"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="help-title"
+			aria-hidden="true"
+		>
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="help-title">How DNS Bench Pro works</h3>
+				</div>
+				<div class="modal-body help-body">
+					<section>
+						<h4>DNS-over-HTTPS (DoH)</h4>
+						<p>
+							Instead of classic DNS on port 53, this tool sends encrypted DNS
+							queries over HTTPS to each resolver’s DoH endpoint — from
+							<strong>your browser</strong>, on <strong>your network</strong>.
+						</p>
+					</section>
+					<section>
+						<h4>Warm-up</h4>
+						<p>
+							Before timing starts, we send untimed probes so TCP/TLS handshakes
+							don’t inflate the first real measurements.
+						</p>
+					</section>
+					<section>
+						<h4>Cached vs uncached</h4>
+						<p>
+							The first query for each domain uses a random subdomain (cold /
+							uncached path). Later queries hit the same domain and usually show
+							faster, cache-warmed responses.
+						</p>
+					</section>
+					<section>
+						<h4>Privacy</h4>
+						<p>
+							There is no server-side logging from this site. Queries go from your
+							browser to the DNS providers you choose. Results stay on your
+							device unless you export or share them.
+						</p>
+					</section>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="modal-btn primary" id="close-help-btn">
+						Got it
+					</button>
+				</div>
 			</div>
 		</div>
 
-		<div id="results-screen">
-			<div class="container">
-				<section id="recommendation-section" style="display: none">
-					<div id="recommendation-card">
-						<h3>Top Recommendation</h3>
-						<p id="recommendation-text"></p>
-					</div>
-				</section>
-
-				<section id="main-graph-section">
-					<h2>
-						<svg
-							class="icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="currentColor"
+		<main id="main">
+			<div id="start-screen">
+				<div class="atmosphere" aria-hidden="true"></div>
+				<div class="container start-container">
+					<p class="brand-mark">DNS Bench Pro</p>
+					<p class="start-tagline">
+						Find the fastest DNS resolver from where you are.
+					</p>
+					<p class="start-privacy">
+						Private by design — all measurements run in your browser.
+					</p>
+					<div class="start-actions">
+						<button id="start-button" class="action-button" type="button">
+							Start test
+						</button>
+						<button
+							id="configure-button"
+							class="ghost-button"
+							type="button"
 						>
-							<path
-								d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
-							/>
-						</svg>
-						Overall Performance
-					</h2>
-					<div id="status-text" class="status-text"></div>
-					<div id="progress-indicator" class="progress-indicator"></div>
-					<div id="main-graph-container">
-						<div id="main-graph-bars"></div>
-						<div class="graph-footer">
-							<div class="graph-footer-actions">
-								<button class="edit-btn" id="edit-providers-btn">
-									Edit Providers
-								</button>
-								<button class="edit-btn" id="edit-domains-btn">
-									Edit Sites
+							Configure
+						</button>
+						<button id="help-button" class="text-button" type="button">
+							How it works
+						</button>
+					</div>
+					<p id="config-summary" class="config-summary">
+						6 providers · 6 sites
+					</p>
+				</div>
+			</div>
+
+			<div id="results-screen">
+				<div class="container">
+					<section
+						id="results-hero"
+						class="results-hero"
+						data-mode="progress"
+						aria-live="polite"
+					>
+						<div id="hero-progress">
+							<div class="progress-head">
+								<p id="progress-phase" class="progress-phase">Ready</p>
+								<p id="progress-percent" class="progress-percent">0%</p>
+							</div>
+							<div
+								class="progress-track"
+								role="progressbar"
+								aria-valuemin="0"
+								aria-valuemax="100"
+								aria-labelledby="progress-phase"
+							>
+								<div id="progress-bar-fill" class="progress-bar-fill"></div>
+							</div>
+							<p id="status-text" class="status-text"></p>
+							<p id="progress-indicator" class="progress-indicator"></p>
+							<p id="progress-live" class="sr-only" aria-live="polite"></p>
+							<div class="hero-actions">
+								<button
+									type="button"
+									id="stop-test-button"
+									class="danger-button"
+									hidden
+								>
+									Stop test
 								</button>
 							</div>
-							<button
-								id="run-again-button"
-								class="action-button"
-							>
-								Run Again
-							</button>
 						</div>
-					</div>
-					<div
-						id="error-summary"
-						class="error-summary"
-						style="display: none"
-					>
-						<h4>Connection Issues Detected</h4>
-						<div id="error-details"></div>
-					</div>
-				</section>
 
-				<section id="detailed-breakdown-section">
-					<h2>
-						<svg
-							class="icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="currentColor"
-						>
-							<path
-								d="M12 3C6.486 3 2 7.486 2 13s4.486 10 10 10 10-4.486 10-10S17.514 3 12 3zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"
-							/>
-							<path
-								d="M13 7h-2v5.414l3.293 3.293 1.414-1.414L13 11.586z"
-							/>
-						</svg>
-						Detailed Breakdown
-					</h2>
-					<div id="detailed-graphs-container"></div>
-				</section>
+						<div id="hero-recommendation" hidden>
+							<p class="hero-eyebrow">Top recommendation</p>
+							<div id="recommendation-meta" class="recommendation-meta"></div>
+							<p id="recommendation-text" class="recommendation-text"></p>
+						</div>
+					</section>
 
-				<section id="comparison-section">
-					<h2>
-						<svg
-							class="icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="currentColor"
-						>
-							<path
-								d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"
-							/>
-							<path
-								d="m14.239 8.3-4.48 1.92-1.92 4.48 4.48-1.92 1.92-4.48z"
-							/>
-						</svg>
-						Comprehensive Comparison
-					</h2>
-					<div class="comparison-container">
-						<div id="comparison-content">
-							<p
-								style="
-									text-align: center;
-									color: var(--text-muted);
-								"
-							>
-								Run a test to see detailed comparison data
+					<!-- Legacy hook kept hidden for compatibility -->
+					<section id="recommendation-section" hidden></section>
+
+					<section id="main-graph-section">
+						<div class="section-heading">
+							<h2>Overall performance</h2>
+							<p class="section-note">
+								Live average latency while providers are measured. Lower is
+								better.
+							</p>
+							<p class="legend">
+								<span class="legend-item cached">Cached</span>
+								<span class="legend-item uncached">Uncached</span>
 							</p>
 						</div>
-					</div>
-				</section>
+						<div id="main-graph-container">
+							<div id="main-graph-bars"></div>
+							<div class="graph-footer">
+								<div class="graph-footer-actions">
+									<button
+										type="button"
+										class="edit-btn"
+										id="edit-providers-btn"
+									>
+										Edit providers
+									</button>
+									<button type="button" class="edit-btn" id="edit-domains-btn">
+										Edit sites
+									</button>
+								</div>
+								<button
+									type="button"
+									id="run-again-button"
+									class="action-button"
+								>
+									Run again
+								</button>
+							</div>
+						</div>
+						<div
+							id="error-summary"
+							class="error-summary"
+							style="display: none"
+						>
+							<h4>Connection issues detected</h4>
+							<div id="error-details"></div>
+						</div>
+					</section>
 
-				<div id="controls-area">
-					<button
-						id="export-csv-button"
-						class="secondary-action-button"
-						style="display: none"
-					>
-						Export to CSV
-					</button>
+					<section id="detailed-breakdown-section" class="secondary-section">
+						<div class="section-heading">
+							<h2>Detailed breakdown</h2>
+							<p class="section-note">
+								Per-domain cached vs uncached averages for each resolver.
+							</p>
+						</div>
+						<div id="detailed-graphs-container"></div>
+					</section>
+
+					<section id="comparison-section" class="secondary-section">
+						<div class="section-heading">
+							<h2>Comparison</h2>
+							<p class="section-note">
+								Rank reflects median finish order. Sorting changes row order
+								only.
+							</p>
+						</div>
+						<div class="comparison-container">
+							<div id="comparison-content">
+								<p class="empty-state">
+									Results will appear here after a full run.
+								</p>
+							</div>
+						</div>
+					</section>
+
+					<div id="controls-area">
+						<button
+							type="button"
+							id="share-results-button"
+							class="secondary-action-button"
+							style="display: none"
+						>
+							Share results
+						</button>
+						<button
+							type="button"
+							id="export-csv-button"
+							class="secondary-action-button"
+							style="display: none"
+						>
+							Export to CSV
+						</button>
+					</div>
 				</div>
 			</div>
-		</div>
+		</main>
 
-		<div class="footer-credit">
-			Inspired by
-			<a
-				href="https://github.com/BrainicHQ/DoHSpeedTest"
-				target="_blank"
-				rel="noopener noreferrer"
-				>DoHSpeedTest by BrainicHQ</a
-			>
-		</div>
-		<div class="footer-credit" id="creator-credit">
-			Created by Socheat Rotanak
-		</div>
+		<footer class="site-footer">
+			<p>
+				Inspired by
+				<a
+					href="https://github.com/BrainicHQ/DoHSpeedTest"
+					target="_blank"
+					rel="noopener noreferrer"
+					>DoHSpeedTest by BrainicHQ</a
+				>
+			</p>
+			<p id="creator-credit">Created by Socheat Rotanak</p>
+		</footer>
 
 		<script src="js/main.js" type="module"></script>
 	</body>

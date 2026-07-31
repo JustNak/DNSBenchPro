@@ -1,6 +1,5 @@
-// frontend/js/doh.js
+// DNS wire format + DoH latency measurement.
 
-// createDnsQuery is only needed for POST requests.
 function createDnsQuery(domain) {
 	if (!domain || typeof domain !== "string") {
 		throw new Error("Invalid domain");
@@ -45,17 +44,25 @@ function createDnsQuery(domain) {
 	return new Uint8Array(buffer);
 }
 
-export async function measureDohLatency(provider, domain) {
+export async function measureDohLatency(provider, domain, externalSignal) {
 	const { url, type = "post", allowCors = false } = provider;
 
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), 5000);
 
+	const onExternalAbort = () => controller.abort();
+	if (externalSignal) {
+		if (externalSignal.aborted) {
+			clearTimeout(timeoutId);
+			return null;
+		}
+		externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+	}
+
 	try {
 		const startTime = performance.now();
 		let fetchPromise;
 
-		// --- FIX: Handle GET and POST methods separately ---
 		if (type === "get") {
 			const urlWithParams = new URL(url);
 			urlWithParams.searchParams.append("name", domain);
@@ -66,7 +73,6 @@ export async function measureDohLatency(provider, domain) {
 				signal: controller.signal,
 			});
 		} else {
-			// Default to POST
 			const queryMessage = createDnsQuery(domain);
 			const fetchOptions = {
 				method: "POST",
@@ -90,8 +96,12 @@ export async function measureDohLatency(provider, domain) {
 
 		const endTime = performance.now();
 		return endTime - startTime;
-	} catch (error) {
+	} catch {
 		clearTimeout(timeoutId);
 		return null;
+	} finally {
+		if (externalSignal) {
+			externalSignal.removeEventListener("abort", onExternalAbort);
+		}
 	}
 }
