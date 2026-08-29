@@ -1,5 +1,3 @@
-// DOM rendering and UI updates.
-
 import * as dom from "./dom.js";
 import { getState, MAX_LATENCY } from "./config.js";
 import { buildShareSummary } from "./stats.js";
@@ -92,10 +90,6 @@ export function setProgress(progress) {
 
 export function showStatus(text) {
 	if (dom.statusText) dom.statusText.textContent = text;
-}
-
-export function showProgress(text) {
-	if (dom.progressIndicator) dom.progressIndicator.textContent = text;
 }
 
 export function setRunningControls(isRunning) {

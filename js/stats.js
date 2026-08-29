@@ -1,4 +1,6 @@
-// Statistical helpers for benchmark results.
+function sum(arr) {
+	return arr.reduce((acc, val) => acc + val, 0);
+}
 
 function escapeHtml(value) {
 	const entities = {
@@ -36,7 +38,6 @@ export function calculateStats(results) {
 		.map((r) => r.latency);
 	const dnssecCount = successful.filter((r) => r.dnssecSupported).length;
 
-	const sum = (arr) => arr.reduce((acc, val) => acc + val, 0);
 	const average = sum(latencies) / latencies.length;
 
 	const sortedLatencies = [...latencies].sort((a, b) => a - b);
@@ -62,6 +63,40 @@ export function calculateStats(results) {
 		dnssec: (dnssecCount / successful.length) * 100,
 		count: results.length,
 	};
+}
+
+export function buildDomainBreakdown(results, domains) {
+	const domainBreakdown = {};
+	domains.forEach((domain) => {
+		domainBreakdown[domain] = { cached: [], uncached: [] };
+	});
+
+	results.forEach((result) => {
+		if (result.latency !== null && domainBreakdown[result.domain]) {
+			if (result.isUncached) {
+				domainBreakdown[result.domain].uncached.push(result.latency);
+			} else {
+				domainBreakdown[result.domain].cached.push(result.latency);
+			}
+		}
+	});
+
+	const finalBreakdown = {};
+	for (const domain in domainBreakdown) {
+		const uncachedLatencies = domainBreakdown[domain].uncached;
+		const cachedLatencies = domainBreakdown[domain].cached;
+		finalBreakdown[domain] = {
+			uncachedAvg:
+				uncachedLatencies.length > 0
+					? sum(uncachedLatencies) / uncachedLatencies.length
+					: null,
+			cachedAvg:
+				cachedLatencies.length > 0
+					? sum(cachedLatencies) / cachedLatencies.length
+					: null,
+		};
+	}
+	return finalBreakdown;
 }
 
 export function getMedianRanks(allProviderStats) {
@@ -91,36 +126,33 @@ export function getRecommendation(allProviderStats) {
 		})
 		.sort((a, b) => a.score - b.score);
 
-	if (scored.length > 0) {
-		const winner = scored[0];
-		const runnerUp = scored[1];
-		const winnerLabel = escapeHtml(winner.name);
-		let delta = "";
-		if (runnerUp) {
-			const gap = runnerUp.stats.median - winner.stats.median;
-			if (gap > 0.5) {
-				delta = ` That is <strong>${gap.toFixed(0)} ms</strong> faster (median) than ${escapeHtml(
-					runnerUp.name,
-				)}.`;
-			}
+	const winner = scored[0];
+	const runnerUp = scored[1];
+	const winnerLabel = escapeHtml(winner.name);
+	let delta = "";
+	if (runnerUp) {
+		const gap = runnerUp.stats.median - winner.stats.median;
+		if (gap > 0.5) {
+			delta = ` That is <strong>${gap.toFixed(0)} ms</strong> faster (median) than ${escapeHtml(
+				runnerUp.name,
+			)}.`;
 		}
-		return {
-			html: `Based on speed and reliability, <strong>${
-				winnerLabel
-			}</strong> is the top performer. Typical (median) response <strong>${winner.stats.median.toFixed(
-				0,
-			)} ms</strong>, average <strong>${winner.stats.average.toFixed(
-				0,
-			)} ms</strong>, reliability <strong>${winner.stats.reliability.toFixed(
-				0,
-			)}%</strong>.${delta}`,
-			winnerName: winner.name,
-			median: winner.stats.median,
-			average: winner.stats.average,
-			reliability: winner.stats.reliability,
-		};
 	}
-	return null;
+	return {
+		html: `Based on speed and reliability, <strong>${
+			winnerLabel
+		}</strong> is the top performer. Typical (median) response <strong>${winner.stats.median.toFixed(
+			0,
+		)} ms</strong>, average <strong>${winner.stats.average.toFixed(
+			0,
+		)} ms</strong>, reliability <strong>${winner.stats.reliability.toFixed(
+			0,
+		)}%</strong>.${delta}`,
+		winnerName: winner.name,
+		median: winner.stats.median,
+		average: winner.stats.average,
+		reliability: winner.stats.reliability,
+	};
 }
 
 export function buildShareSummary(allProviderStats, medianRanks, queryCount) {

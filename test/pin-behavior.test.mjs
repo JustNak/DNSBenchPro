@@ -3,6 +3,7 @@ import { describe, it, beforeEach } from "node:test";
 
 import {
 	calculateStats,
+	buildDomainBreakdown,
 	getMedianRanks,
 	getRecommendation,
 	buildShareSummary,
@@ -240,54 +241,24 @@ describe("estimateTestDuration", () => {
 	});
 });
 
-describe("domain breakdown (main.js contract)", () => {
-	function breakdownFromMain(allResults, domains) {
-		const domainBreakdown = {};
-		domains.forEach((domain) => {
-			domainBreakdown[domain] = { cached: [], uncached: [] };
-		});
-		allResults.forEach((result) => {
-			if (result.latency !== null && domainBreakdown[result.domain]) {
-				if (result.isUncached) {
-					domainBreakdown[result.domain].uncached.push(result.latency);
-				} else {
-					domainBreakdown[result.domain].cached.push(result.latency);
-				}
-			}
-		});
-		const sum = (arr) => arr.reduce((acc, val) => acc + val, 0);
-		const finalBreakdown = {};
-		for (const domain in domainBreakdown) {
-			const uncachedLatencies = domainBreakdown[domain].uncached;
-			const cachedLatencies = domainBreakdown[domain].cached;
-			finalBreakdown[domain] = {
-				uncachedAvg:
-					uncachedLatencies.length > 0
-						? sum(uncachedLatencies) / uncachedLatencies.length
-						: null,
-				cachedAvg:
-					cachedLatencies.length > 0
-						? sum(cachedLatencies) / cachedLatencies.length
-						: null,
-			};
-		}
-		return finalBreakdown;
-	}
-
-	const results = [
-		{ latency: 10, isUncached: true, domain: "a.com" },
-		{ latency: 30, isUncached: true, domain: "a.com" },
-		{ latency: 20, isUncached: false, domain: "a.com" },
-		{ latency: null, isUncached: true, domain: "b.com" },
-		{ latency: 40, isUncached: false, domain: "unknown.com" },
-	];
-	const expected = {
-		"a.com": { uncachedAvg: 20, cachedAvg: 20 },
-		"b.com": { uncachedAvg: null, cachedAvg: null },
-	};
-
+describe("buildDomainBreakdown", () => {
 	it("averages per domain and ignores unknown domains and failures", () => {
-		assert.deepEqual(breakdownFromMain(results, ["a.com", "b.com"]), expected);
+		assert.deepEqual(
+			buildDomainBreakdown(
+				[
+					{ latency: 10, isUncached: true, domain: "a.com" },
+					{ latency: 30, isUncached: true, domain: "a.com" },
+					{ latency: 20, isUncached: false, domain: "a.com" },
+					{ latency: null, isUncached: true, domain: "b.com" },
+					{ latency: 40, isUncached: false, domain: "unknown.com" },
+				],
+				["a.com", "b.com"],
+			),
+			{
+				"a.com": { uncachedAvg: 20, cachedAvg: 20 },
+				"b.com": { uncachedAvg: null, cachedAvg: null },
+			},
+		);
 	});
 });
 

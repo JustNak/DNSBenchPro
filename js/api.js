@@ -1,18 +1,12 @@
-// Client-side testing helpers.
-
 import { measureDohLatency } from "./doh.js";
 import { getAbortSignal } from "./config.js";
 
-/**
- * Untimed probe to establish TCP/TLS so the first timed query isn't cold.
- */
-export async function warmUpConnection(provider, domain) {
-	await measureDohLatency(provider, domain, getAbortSignal());
-}
-
 export async function warmUpConnections(provider, domains) {
+	// Discard the probe latency so TCP/TLS setup does not inflate the first timed query.
 	await Promise.all(
-		domains.map((domain) => warmUpConnection(provider, domain)),
+		domains.map((domain) =>
+			measureDohLatency(provider, domain, getAbortSignal()),
+		),
 	);
 }
 

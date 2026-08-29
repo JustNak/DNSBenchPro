@@ -1,5 +1,3 @@
-// Manages application state, default settings, and persistence.
-
 export const MAX_LATENCY = 150; // For graph scaling
 
 export const DEFAULT_PROVIDERS = [
@@ -121,7 +119,6 @@ const state = {
 	providerColors: Object.create(null),
 	isTestRunning: false,
 	allProviderStats: Object.create(null),
-	queriedDomains: new Set(),
 	runPhase: "idle", // idle | warmup | measure | complete | cancelled
 	medianRanks: Object.create(null),
 	lastQueryCount: null,
@@ -277,14 +274,17 @@ export function generateProviderColors() {
 	});
 }
 
-export function createAbortController() {
-	if (state.abortController) {
-		try {
-			state.abortController.abort();
-		} catch {
-			/* ignore */
-		}
+function abortCurrent() {
+	if (!state.abortController) return;
+	try {
+		state.abortController.abort();
+	} catch {
+		/* ignore abort if the controller is already closed */
 	}
+}
+
+export function createAbortController() {
+	abortCurrent();
 	state.abortController = new AbortController();
 	return state.abortController;
 }
@@ -294,11 +294,5 @@ export function getAbortSignal() {
 }
 
 export function abortActiveRequests() {
-	if (state.abortController) {
-		try {
-			state.abortController.abort();
-		} catch {
-			/* ignore */
-		}
-	}
+	abortCurrent();
 }

@@ -1,5 +1,3 @@
-// Centralizes DOM element selections.
-
 export const startScreen = document.getElementById("start-screen");
 export const startButton = document.getElementById("start-button");
 export const configureButton = document.getElementById("configure-button");
@@ -66,8 +64,6 @@ export const cancelDurationBtn = document.getElementById("cancel-duration-btn");
 export const closeHelpBtn = document.getElementById("close-help-btn");
 export const providersError = document.getElementById("providers-error");
 export const domainsError = document.getElementById("domains-error");
-export const durationEstimates = document.querySelectorAll("[data-estimate]");
-export const presetButtons = document.querySelectorAll("[data-preset]");
 export const resetDefaultsBtn = document.getElementById("reset-defaults-btn");
 export const openProvidersFromConfig = document.getElementById(
 	"open-providers-from-config",
