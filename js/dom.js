@@ -5,6 +5,7 @@ export const startButton = document.getElementById("start-button");
 export const configureButton = document.getElementById("configure-button");
 export const helpButton = document.getElementById("help-button");
 export const configSummary = document.getElementById("config-summary");
+export const startRoster = document.getElementById("start-roster");
 export const runAgainButton = document.getElementById("run-again-button");
 export const stopTestButton = document.getElementById("stop-test-button");
 export const exportCsvButton = document.getElementById("export-csv-button");

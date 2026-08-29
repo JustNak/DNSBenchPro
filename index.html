@@ -3,15 +3,15 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>DNS Bench Pro — Find your fastest DNS</title>
+		<title>DNS Bench Pro. Find your fastest DNS</title>
 		<meta
 			name="description"
-			content="Client-side DNS-over-HTTPS benchmark. Compare resolver latency, reliability, and cached vs uncached performance from your browser — privately."
+			content="Client-side DNS-over-HTTPS benchmark. Compare resolver latency, reliability, and cached vs uncached performance from your browser."
 		/>
 		<meta property="og:title" content="DNS Bench Pro" />
 		<meta
 			property="og:description"
-			content="Find the fastest DNS resolver from where you are. Private, browser-only DoH benchmarks."
+			content="Find the fastest DNS resolver from this network. Private, browser-only DoH benchmarks."
 		/>
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content="https://dnsbenchpro.netlify.app" />
@@ -19,13 +19,32 @@
 		<meta name="twitter:title" content="DNS Bench Pro" />
 		<meta
 			name="twitter:description"
-			content="Find the fastest DNS resolver from where you are."
+			content="Find the fastest DNS resolver from this network."
 		/>
 		<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+		<link
+			rel="preload"
+			href="fonts/bricolage-grotesque-latin-wght.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
+		/>
+		<link
+			rel="preload"
+			href="fonts/ibm-plex-mono-latin-400.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
+		/>
 		<link rel="stylesheet" href="css/style.css" />
 	</head>
 	<body>
 		<a class="skip-link" href="#main">Skip to content</a>
+
+		<header class="site-mast">
+			<p class="brand-lockup">DNS Bench Pro</p>
+			<p id="config-summary" class="config-summary">6 providers / 6 sites</p>
+		</header>
 
 		<!-- Duration / profile modal -->
 		<div
@@ -184,7 +203,7 @@
 					<div class="edit-form">
 						<div id="providers-list"></div>
 						<button type="button" class="add-provider-btn" id="add-provider-btn">
-							+ Add provider
+							Add provider
 						</button>
 					</div>
 				</div>
@@ -243,7 +262,11 @@
 					>
 						Cancel
 					</button>
-					<button type="button" class="modal-btn primary" id="save-domains-btn">
+					<button
+						type="button"
+						class="modal-btn primary"
+						id="save-domains-btn"
+					>
 						Save changes
 					</button>
 				</div>
@@ -270,7 +293,7 @@
 						<h4>DNS-over-HTTPS (DoH)</h4>
 						<p>
 							Instead of classic DNS on port 53, this tool sends encrypted DNS
-							queries over HTTPS to each resolver’s DoH endpoint — from
+							queries over HTTPS to each resolver's DoH endpoint, from
 							<strong>your browser</strong>, on <strong>your network</strong>.
 						</p>
 					</section>
@@ -278,7 +301,7 @@
 						<h4>Warm-up</h4>
 						<p>
 							Before timing starts, we send untimed probes so TCP/TLS handshakes
-							don’t inflate the first real measurements.
+							don't inflate the first real measurements.
 						</p>
 					</section>
 					<section>
@@ -308,33 +331,40 @@
 
 		<main id="main">
 			<div id="start-screen">
-				<div class="atmosphere" aria-hidden="true"></div>
-				<div class="container start-container">
-					<p class="brand-mark">DNS Bench Pro</p>
-					<p class="start-tagline">
-						Find the fastest DNS resolver from where you are.
-					</p>
-					<p class="start-privacy">
-						Private by design — all measurements run in your browser.
-					</p>
-					<div class="start-actions">
-						<button id="start-button" class="action-button" type="button">
-							Start test
-						</button>
-						<button
-							id="configure-button"
-							class="ghost-button"
-							type="button"
-						>
-							Configure
-						</button>
-						<button id="help-button" class="text-button" type="button">
-							How it works
-						</button>
+				<div class="start-scale" aria-hidden="true">
+					<span>0 ms</span>
+					<span>50</span>
+					<span>100</span>
+					<span>150</span>
+				</div>
+				<div class="start-split">
+					<div class="start-copy">
+						<h1 class="start-thesis">
+							Find the fastest resolver from this network.
+						</h1>
+						<p class="start-privacy">
+							Queries leave your browser only for the resolvers you pick. This
+							site does not log results.
+						</p>
 					</div>
-					<p id="config-summary" class="config-summary">
-						6 providers · 6 sites
-					</p>
+					<div class="start-panel">
+						<div class="start-actions">
+							<button id="start-button" class="action-button" type="button">
+								Start test
+							</button>
+							<button
+								id="configure-button"
+								class="ghost-button"
+								type="button"
+							>
+								Configure
+							</button>
+							<button id="help-button" class="text-button" type="button">
+								How it works
+							</button>
+						</div>
+						<ul id="start-roster" class="start-roster" aria-label="Providers in this run"></ul>
+					</div>
 				</div>
 			</div>
 
@@ -376,8 +406,8 @@
 						</div>
 
 						<div id="hero-recommendation" hidden>
-							<p class="hero-eyebrow">Top recommendation</p>
-							<div id="recommendation-meta" class="recommendation-meta"></div>
+							<p class="hero-kicker">Fastest from this network</p>
+							<dl id="recommendation-meta" class="recommendation-meta"></dl>
 							<p id="recommendation-text" class="recommendation-text"></p>
 						</div>
 					</section>
@@ -390,7 +420,7 @@
 							<h2>Overall performance</h2>
 							<p class="section-note">
 								Live average latency while providers are measured. Lower is
-								better.
+								better. Scale is 0-150 ms.
 							</p>
 							<p class="legend">
 								<span class="legend-item cached">Cached</span>
@@ -398,6 +428,16 @@
 							</p>
 						</div>
 						<div id="main-graph-container">
+							<div class="ms-ruler" aria-hidden="true">
+								<span class="ms-ruler-gutter"></span>
+								<div class="ms-ruler-track">
+									<span>0</span>
+									<span>50</span>
+									<span>100</span>
+									<span>150 ms</span>
+								</div>
+								<span class="ms-ruler-value-gutter"></span>
+							</div>
 							<div id="main-graph-bars"></div>
 							<div class="graph-footer">
 								<div class="graph-footer-actions">
