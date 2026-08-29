@@ -22,13 +22,21 @@ function providerKey(name) {
 
 export function updateConfigSummary() {
 	const state = getState();
-	const text = `${state.providers.length} providers · ${state.domains.length} sites`;
+	const text = `${state.providers.length} providers / ${state.domains.length} sites`;
 	if (dom.configSummary) dom.configSummary.textContent = text;
 	if (dom.configProvidersCount) {
 		dom.configProvidersCount.textContent = String(state.providers.length);
 	}
 	if (dom.configDomainsCount) {
 		dom.configDomainsCount.textContent = String(state.domains.length);
+	}
+	if (dom.startRoster) {
+		dom.startRoster.replaceChildren();
+		state.providers.forEach(({ name }) => {
+			const item = document.createElement("li");
+			item.textContent = name;
+			dom.startRoster.appendChild(item);
+		});
 	}
 }
 
@@ -138,17 +146,16 @@ export function createInitialUI() {
                 <div class="bar-container">
                     <div class="bar" id="bar-${safeName}" style="background-color: ${color};"></div>
                 </div>
-                <div class="latency-value" id="latency-${safeName}">—</div>
+                <div class="latency-value" id="latency-${safeName}">-</div>
             </div>`;
 
 		dom.detailedGraphsContainer.innerHTML += `
-            <div class="dns-card" id="card-${safeName}">
+            <div class="dns-card" id="card-${safeName}" style="--provider: ${color}">
                 <div class="card-header">
                     <div class="card-title-section">
-                        <span class="card-color-dot" style="background-color: ${color};"></span>
                         <h3 class="card-title">${escapeHtml(name)}</h3>
                     </div>
-                    <div class="card-stats" id="stats-${safeName}">Waiting…</div>
+                    <div class="card-stats" id="stats-${safeName}">Waiting</div>
                 </div>
                 <div class="detailed-results" id="results-${safeName}">
                     <div class="detailed-row header">
@@ -180,14 +187,14 @@ export function displayDetailedBreakdown(providerName, breakdownData) {
 				? `<span class="detailed-latency cached">${stats.cachedAvg.toFixed(
 						0,
 				  )}</span>`
-				: `<span class="detailed-latency na">—</span>`;
+				: `<span class="detailed-latency na">n/a</span>`;
 
 		const uncachedAvgHtml =
 			stats.uncachedAvg !== null
 				? `<span class="detailed-latency uncached">${stats.uncachedAvg.toFixed(
 						0,
 				  )}</span>`
-				: `<span class="detailed-latency na">—</span>`;
+				: `<span class="detailed-latency na">n/a</span>`;
 
 		row.innerHTML = `
             <strong class="domain-name">${escapeHtml(domain)}</strong>
@@ -363,15 +370,20 @@ export function displayRecommendation(recommendation, incomplete = false) {
 
 	if (dom.recommendationMeta) {
 		dom.recommendationMeta.replaceChildren();
-		[
-			recommendation.winnerName,
-			`${recommendation.median.toFixed(0)} ms median`,
-			`${recommendation.reliability.toFixed(0)}% reliable`,
-		].forEach((text) => {
-			const pill = document.createElement("span");
-			pill.className = "meta-pill";
-			pill.textContent = text;
-			dom.recommendationMeta.appendChild(pill);
+		const facts = [
+			["Resolver", recommendation.winnerName],
+			["Median", `${recommendation.median.toFixed(0)} ms`],
+			["Reliability", `${recommendation.reliability.toFixed(0)}%`],
+		];
+		facts.forEach(([label, value]) => {
+			const fact = document.createElement("div");
+			fact.className = "rec-fact";
+			const term = document.createElement("dt");
+			term.textContent = label;
+			const detail = document.createElement("dd");
+			detail.textContent = value;
+			fact.append(term, detail);
+			dom.recommendationMeta.appendChild(fact);
 		});
 	}
 

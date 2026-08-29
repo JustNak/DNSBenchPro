@@ -130,7 +130,7 @@ export function buildShareSummary(allProviderStats, medianRanks, queryCount) {
 			(a, b) => (medianRanks[a[0]] || 99) - (medianRanks[b[0]] || 99),
 		);
 
-	if (ranked.length === 0) return "DNS Bench Pro — no completed results.";
+	if (ranked.length === 0) return "DNS Bench Pro: no completed results.";
 
 	const lines = [
 		"DNS Bench Pro results",
@@ -141,7 +141,7 @@ export function buildShareSummary(allProviderStats, medianRanks, queryCount) {
 
 	ranked.forEach(([name, stats]) => {
 		lines.push(
-			`#${medianRanks[name]} ${name} — median ${stats.median.toFixed(
+			`#${medianRanks[name]} ${name}: median ${stats.median.toFixed(
 				1,
 			)} ms, avg ${stats.average.toFixed(1)} ms, reliability ${stats.reliability.toFixed(
 				0,

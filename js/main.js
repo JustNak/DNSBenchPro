@@ -75,7 +75,7 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 			ui.setProgress({
 				phase: "Measuring",
 				label: `${provider.name} (${providerIndex}/${state.providers.length})`,
-				detail: `Query ${currentQueryIndex}/${totalQueries} · ${domain} · ${resultDetail}`,
+				detail: `Query ${currentQueryIndex}/${totalQueries}, ${domain}, ${resultDetail}`,
 				overallIndex,
 				overallTotal: totals.overall,
 			});

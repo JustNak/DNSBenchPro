@@ -259,16 +259,16 @@ export function estimateTestDuration(queryCount) {
 
 export function generateProviderColors() {
 	const predefinedColors = [
-		"#e86a6a",
-		"#3dd6c6",
-		"#5aa9e6",
-		"#6ecf8e",
-		"#e6a756",
-		"#c084fc",
-		"#54a0ff",
-		"#7dd3c0",
-		"#f368e0",
-		"#ff9f43",
+		"#c2341a",
+		"#2c5f8a",
+		"#1a6b4a",
+		"#8a4b12",
+		"#3d3a7a",
+		"#6b3d54",
+		"#1f5f62",
+		"#5c5346",
+		"#7a3b2e",
+		"#2a4a73",
 	];
 	state.providerColors = Object.create(null);
 	state.providers.forEach(({ name }, index) => {
