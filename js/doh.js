@@ -1,5 +1,3 @@
-// DNS wire format + DoH latency measurement.
-
 function createDnsQuery(domain) {
 	if (!domain || typeof domain !== "string") {
 		throw new Error("Invalid domain");

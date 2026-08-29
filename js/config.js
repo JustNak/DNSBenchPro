@@ -1,6 +1,12 @@
-// Manages application state, default settings, and persistence.
+export const GRAPH_SCALE_MS = 150;
 
-export const MAX_LATENCY = 150; // For graph scaling
+export const RUN_PHASE = Object.freeze({
+	idle: "idle",
+	warmup: "warmup",
+	measure: "measure",
+	complete: "complete",
+	cancelled: "cancelled",
+});
 
 export const DEFAULT_PROVIDERS = [
 	{
@@ -121,8 +127,7 @@ const state = {
 	providerColors: Object.create(null),
 	isTestRunning: false,
 	allProviderStats: Object.create(null),
-	queriedDomains: new Set(),
-	runPhase: "idle", // idle | warmup | measure | complete | cancelled
+	runPhase: RUN_PHASE.idle,
 	medianRanks: Object.create(null),
 	lastQueryCount: null,
 	abortController: null,
@@ -243,12 +248,13 @@ export function applyPreset(presetId) {
 	return true;
 }
 
+const WARM_UP_SECONDS_PER_PROVIDER = 0.18;
+const MEASURE_SECONDS_PER_PROVIDER_ROUND = 0.2;
+
 export function estimateTestDuration(queryCount) {
 	const providers = state.providers.length;
-	// Domains are multi-pinged per provider and per query round.
-	// Keep a conservative estimate for network and browser scheduling overhead.
-	const warmUpSeconds = providers * 0.18;
-	const measureSeconds = providers * queryCount * 0.2;
+	const warmUpSeconds = providers * WARM_UP_SECONDS_PER_PROVIDER;
+	const measureSeconds = providers * queryCount * MEASURE_SECONDS_PER_PROVIDER_ROUND;
 	const seconds = Math.round(warmUpSeconds + measureSeconds);
 	if (seconds < 60) return `~${Math.max(5, seconds)}s`;
 	if (seconds < 120) return `~${Math.round(seconds / 15) * 15}s`;
@@ -277,14 +283,13 @@ export function generateProviderColors() {
 	});
 }
 
+function abortCurrent() {
+	if (!state.abortController) return;
+	state.abortController.abort();
+}
+
 export function createAbortController() {
-	if (state.abortController) {
-		try {
-			state.abortController.abort();
-		} catch {
-			/* ignore */
-		}
-	}
+	abortCurrent();
 	state.abortController = new AbortController();
 	return state.abortController;
 }
@@ -294,11 +299,5 @@ export function getAbortSignal() {
 }
 
 export function abortActiveRequests() {
-	if (state.abortController) {
-		try {
-			state.abortController.abort();
-		} catch {
-			/* ignore */
-		}
-	}
+	abortCurrent();
 }

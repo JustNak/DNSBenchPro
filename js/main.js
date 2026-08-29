@@ -1,5 +1,3 @@
-// Application entry point and test orchestrator.
-
 import * as dom from "./dom.js";
 import * as ui from "./ui.js";
 import * as api from "./api.js";
@@ -11,6 +9,7 @@ import {
 	generateProviderColors,
 	createAbortController,
 	abortActiveRequests,
+	RUN_PHASE,
 } from "./config.js";
 
 function progressTotals(queryCount) {
@@ -89,45 +88,16 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 	ui.updateCardStats(provider.name, allStats);
 	ui.showCard(provider.name);
 
-	const domainBreakdown = {};
-	state.domains.forEach((domain) => {
-		domainBreakdown[domain] = { cached: [], uncached: [] };
-	});
-
-	allResults.forEach((result) => {
-		if (result.latency !== null && domainBreakdown[result.domain]) {
-			if (result.isUncached) {
-				domainBreakdown[result.domain].uncached.push(result.latency);
-			} else {
-				domainBreakdown[result.domain].cached.push(result.latency);
-			}
-		}
-	});
-
-	const sum = (arr) => arr.reduce((acc, val) => acc + val, 0);
-	const finalBreakdown = {};
-	for (const domain in domainBreakdown) {
-		const uncachedLatencies = domainBreakdown[domain].uncached;
-		const cachedLatencies = domainBreakdown[domain].cached;
-		finalBreakdown[domain] = {
-			uncachedAvg:
-				uncachedLatencies.length > 0
-					? sum(uncachedLatencies) / uncachedLatencies.length
-					: null,
-			cachedAvg:
-				cachedLatencies.length > 0
-					? sum(cachedLatencies) / cachedLatencies.length
-					: null,
-		};
-	}
-
-	ui.displayDetailedBreakdown(provider.name, finalBreakdown);
+	ui.displayDetailedBreakdown(
+		provider.name,
+		stats.buildDomainBreakdown(allResults, state.domains),
+	);
 }
 
 async function warmUpAllProviders(totals) {
 	const state = getState();
 	const domains = [...state.domains];
-	state.runPhase = "warmup";
+	state.runPhase = RUN_PHASE.warmup;
 	ui.setProgress({
 		phase: "Warm-up",
 		label: "Priming DNS connections…",
@@ -166,7 +136,7 @@ function stopTest() {
 	const state = getState();
 	if (!state.isTestRunning) return;
 	state.isTestRunning = false;
-	state.runPhase = "cancelled";
+	state.runPhase = RUN_PHASE.cancelled;
 	abortActiveRequests();
 	ui.showStatus("Stopping…");
 }
@@ -176,7 +146,7 @@ async function startTest(queryCount) {
 	if (state.isTestRunning) return;
 
 	state.isTestRunning = true;
-	state.runPhase = "warmup";
+	state.runPhase = RUN_PHASE.warmup;
 	state.lastQueryCount = queryCount;
 	state.medianRanks = Object.create(null);
 	createAbortController();
@@ -186,7 +156,6 @@ async function startTest(queryCount) {
 	ui.setRunningControls(true);
 
 	state.allProviderStats = Object.create(null);
-	state.queriedDomains.clear();
 	ui.createInitialUI();
 	ui.setHeroMode("progress");
 
@@ -196,7 +165,7 @@ async function startTest(queryCount) {
 		await warmUpAllProviders(totals);
 
 		if (state.isTestRunning) {
-			state.runPhase = "measure";
+			state.runPhase = RUN_PHASE.measure;
 			let measureOffset = totals.warmUps;
 
 			for (let i = 0; i < state.providers.length; i++) {
@@ -217,7 +186,7 @@ async function startTest(queryCount) {
 		const expectedProviders = state.providers.length;
 
 		if (state.isTestRunning && completedProviders === expectedProviders) {
-			state.runPhase = "complete";
+			state.runPhase = RUN_PHASE.complete;
 			ui.setProgress({
 				phase: "Complete",
 				label: "Test complete",
@@ -241,8 +210,8 @@ async function startTest(queryCount) {
 			if (dom.shareResultsButton) {
 				dom.shareResultsButton.style.display = "inline-flex";
 			}
-		} else if (state.runPhase === "cancelled" || !state.isTestRunning) {
-			state.runPhase = "cancelled";
+		} else if (state.runPhase === RUN_PHASE.cancelled || !state.isTestRunning) {
+			state.runPhase = RUN_PHASE.cancelled;
 			ui.setProgress({
 				phase: "Stopped",
 				label: "Test stopped",

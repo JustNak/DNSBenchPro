@@ -1,5 +1,3 @@
-// Modal logic: profiles, config, providers, domains, help.
-
 import * as dom from "./dom.js";
 import * as ui from "./ui.js";
 import { openModal, closeModal } from "./a11y.js";

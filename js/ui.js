@@ -1,7 +1,5 @@
-// DOM rendering and UI updates.
-
 import * as dom from "./dom.js";
-import { getState, MAX_LATENCY } from "./config.js";
+import { getState, GRAPH_SCALE_MS } from "./config.js";
 import { buildShareSummary } from "./stats.js";
 
 function escapeHtml(value) {
@@ -41,7 +39,6 @@ export function updateConfigSummary() {
 }
 
 export function setHeroMode(mode) {
-	// mode: progress | recommendation | idle
 	if (!dom.heroProgress || !dom.heroRecommendation) return;
 	dom.heroProgress.hidden = mode !== "progress";
 	dom.heroRecommendation.hidden = mode !== "recommendation";
@@ -92,10 +89,6 @@ export function setProgress(progress) {
 
 export function showStatus(text) {
 	if (dom.statusText) dom.statusText.textContent = text;
-}
-
-export function showProgress(text) {
-	if (dom.progressIndicator) dom.progressIndicator.textContent = text;
 }
 
 export function setRunningControls(isRunning) {
@@ -212,7 +205,7 @@ export function updateMainGraph(name, latency) {
 	const bar = document.getElementById(`bar-${safeName}`);
 	const latencyEl = document.getElementById(`latency-${safeName}`);
 	if (bar && latencyEl) {
-		const width = Math.min(100, (latency / MAX_LATENCY) * 100);
+		const width = Math.min(100, (latency / GRAPH_SCALE_MS) * 100);
 		bar.style.width = `${width}%`;
 		latencyEl.textContent = `${latency.toFixed(0)} ms`;
 	}

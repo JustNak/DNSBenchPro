@@ -1,5 +1,3 @@
-// Centralizes DOM element selections.
-
 export const startScreen = document.getElementById("start-screen");
 export const startButton = document.getElementById("start-button");
 export const configureButton = document.getElementById("configure-button");
@@ -41,7 +39,6 @@ export const recommendationSection = document.getElementById(
 	"recommendation-section",
 );
 
-// Modals
 export const durationModal = document.getElementById("duration-modal");
 export const editProvidersModal = document.getElementById(
 	"edit-providers-modal",
@@ -50,7 +47,6 @@ export const editDomainsModal = document.getElementById("edit-domains-modal");
 export const helpModal = document.getElementById("help-modal");
 export const configModal = document.getElementById("config-modal");
 
-// Modal controls
 export const editProvidersBtn = document.getElementById("edit-providers-btn");
 export const editDomainsBtn = document.getElementById("edit-domains-btn");
 export const providersList = document.getElementById("providers-list");
@@ -66,8 +62,6 @@ export const cancelDurationBtn = document.getElementById("cancel-duration-btn");
 export const closeHelpBtn = document.getElementById("close-help-btn");
 export const providersError = document.getElementById("providers-error");
 export const domainsError = document.getElementById("domains-error");
-export const durationEstimates = document.querySelectorAll("[data-estimate]");
-export const presetButtons = document.querySelectorAll("[data-preset]");
 export const resetDefaultsBtn = document.getElementById("reset-defaults-btn");
 export const openProvidersFromConfig = document.getElementById(
 	"open-providers-from-config",

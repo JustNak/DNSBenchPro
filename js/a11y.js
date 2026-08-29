@@ -1,5 +1,3 @@
-// Shared modal accessibility helpers.
-
 let previouslyFocused = null;
 let activeModal = null;
 let trapHandler = null;
@@ -112,8 +110,4 @@ export function closeModal(modal) {
 		}
 		previouslyFocused = null;
 	}
-}
-
-export function getActiveModal() {
-	return activeModal;
 }
