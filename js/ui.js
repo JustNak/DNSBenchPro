@@ -39,7 +39,6 @@ export function updateConfigSummary() {
 }
 
 export function setHeroMode(mode) {
-	// mode: progress | recommendation | idle
 	if (!dom.heroProgress || !dom.heroRecommendation) return;
 	dom.heroProgress.hidden = mode !== "progress";
 	dom.heroRecommendation.hidden = mode !== "recommendation";

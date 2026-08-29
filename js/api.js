@@ -2,7 +2,6 @@ import { measureDohLatency } from "./doh.js";
 import { getAbortSignal } from "./config.js";
 
 export async function warmUpConnections(provider, domains) {
-	// Discard the probe latency so TCP/TLS setup does not inflate the first timed query.
 	await Promise.all(
 		domains.map((domain) =>
 			measureDohLatency(provider, domain, getAbortSignal()),

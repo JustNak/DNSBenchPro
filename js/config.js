@@ -1,4 +1,4 @@
-export const MAX_LATENCY = 150; // For graph scaling
+export const MAX_LATENCY = 150;
 
 export const DEFAULT_PROVIDERS = [
 	{
@@ -119,7 +119,7 @@ const state = {
 	providerColors: Object.create(null),
 	isTestRunning: false,
 	allProviderStats: Object.create(null),
-	runPhase: "idle", // idle | warmup | measure | complete | cancelled
+	runPhase: "idle",
 	medianRanks: Object.create(null),
 	lastQueryCount: null,
 	abortController: null,
@@ -242,8 +242,6 @@ export function applyPreset(presetId) {
 
 export function estimateTestDuration(queryCount) {
 	const providers = state.providers.length;
-	// Domains are multi-pinged per provider and per query round.
-	// Keep a conservative estimate for network and browser scheduling overhead.
 	const warmUpSeconds = providers * 0.18;
 	const measureSeconds = providers * queryCount * 0.2;
 	const seconds = Math.round(warmUpSeconds + measureSeconds);
@@ -279,7 +277,6 @@ function abortCurrent() {
 	try {
 		state.abortController.abort();
 	} catch {
-		/* ignore abort if the controller is already closed */
 	}
 }
 

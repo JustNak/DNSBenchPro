@@ -39,7 +39,6 @@ export const recommendationSection = document.getElementById(
 	"recommendation-section",
 );
 
-// Modals
 export const durationModal = document.getElementById("duration-modal");
 export const editProvidersModal = document.getElementById(
 	"edit-providers-modal",
@@ -48,7 +47,6 @@ export const editDomainsModal = document.getElementById("edit-domains-modal");
 export const helpModal = document.getElementById("help-modal");
 export const configModal = document.getElementById("config-modal");
 
-// Modal controls
 export const editProvidersBtn = document.getElementById("edit-providers-btn");
 export const editDomainsBtn = document.getElementById("edit-domains-btn");
 export const providersList = document.getElementById("providers-list");
