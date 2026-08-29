@@ -134,7 +134,7 @@ describe("buildShareSummary", () => {
 	it("returns the empty-results line", () => {
 		assert.equal(
 			buildShareSummary({}, {}, 6),
-			"DNS Bench Pro — no completed results.",
+			"DNS Bench Pro: no completed results.",
 		);
 	});
 
@@ -161,8 +161,8 @@ describe("buildShareSummary", () => {
 		assert.equal(lines[0], "DNS Bench Pro results");
 		assert.equal(lines[1], "Profile: 6 queries/url");
 		assert.equal(lines[2], `Date: ${new Date().toISOString().slice(0, 10)}`);
-		assert.equal(lines[4], "#1 Fast — median 10.0 ms, avg 11.0 ms, reliability 100%");
-		assert.equal(lines[5], "#2 Slow — median 20.0 ms, avg 21.0 ms, reliability 90%");
+		assert.equal(lines[4], "#1 Fast: median 10.0 ms, avg 11.0 ms, reliability 100%");
+		assert.equal(lines[5], "#2 Slow: median 20.0 ms, avg 21.0 ms, reliability 90%");
 		assert.equal(lines[7], "https://dnsbenchpro.netlify.app");
 	});
 });
