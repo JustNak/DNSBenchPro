@@ -1,5 +1,5 @@
 import * as dom from "./dom.js";
-import { getState, MAX_LATENCY } from "./config.js";
+import { getState, GRAPH_SCALE_MS } from "./config.js";
 import { buildShareSummary } from "./stats.js";
 
 function escapeHtml(value) {
@@ -205,7 +205,7 @@ export function updateMainGraph(name, latency) {
 	const bar = document.getElementById(`bar-${safeName}`);
 	const latencyEl = document.getElementById(`latency-${safeName}`);
 	if (bar && latencyEl) {
-		const width = Math.min(100, (latency / MAX_LATENCY) * 100);
+		const width = Math.min(100, (latency / GRAPH_SCALE_MS) * 100);
 		bar.style.width = `${width}%`;
 		latencyEl.textContent = `${latency.toFixed(0)} ms`;
 	}

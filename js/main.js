@@ -9,6 +9,7 @@ import {
 	generateProviderColors,
 	createAbortController,
 	abortActiveRequests,
+	RUN_PHASE,
 } from "./config.js";
 
 function progressTotals(queryCount) {
@@ -96,7 +97,7 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 async function warmUpAllProviders(totals) {
 	const state = getState();
 	const domains = [...state.domains];
-	state.runPhase = "warmup";
+	state.runPhase = RUN_PHASE.warmup;
 	ui.setProgress({
 		phase: "Warm-up",
 		label: "Priming DNS connections…",
@@ -135,7 +136,7 @@ function stopTest() {
 	const state = getState();
 	if (!state.isTestRunning) return;
 	state.isTestRunning = false;
-	state.runPhase = "cancelled";
+	state.runPhase = RUN_PHASE.cancelled;
 	abortActiveRequests();
 	ui.showStatus("Stopping…");
 }
@@ -145,7 +146,7 @@ async function startTest(queryCount) {
 	if (state.isTestRunning) return;
 
 	state.isTestRunning = true;
-	state.runPhase = "warmup";
+	state.runPhase = RUN_PHASE.warmup;
 	state.lastQueryCount = queryCount;
 	state.medianRanks = Object.create(null);
 	createAbortController();
@@ -164,7 +165,7 @@ async function startTest(queryCount) {
 		await warmUpAllProviders(totals);
 
 		if (state.isTestRunning) {
-			state.runPhase = "measure";
+			state.runPhase = RUN_PHASE.measure;
 			let measureOffset = totals.warmUps;
 
 			for (let i = 0; i < state.providers.length; i++) {
@@ -185,7 +186,7 @@ async function startTest(queryCount) {
 		const expectedProviders = state.providers.length;
 
 		if (state.isTestRunning && completedProviders === expectedProviders) {
-			state.runPhase = "complete";
+			state.runPhase = RUN_PHASE.complete;
 			ui.setProgress({
 				phase: "Complete",
 				label: "Test complete",
@@ -209,8 +210,8 @@ async function startTest(queryCount) {
 			if (dom.shareResultsButton) {
 				dom.shareResultsButton.style.display = "inline-flex";
 			}
-		} else if (state.runPhase === "cancelled" || !state.isTestRunning) {
-			state.runPhase = "cancelled";
+		} else if (state.runPhase === RUN_PHASE.cancelled || !state.isTestRunning) {
+			state.runPhase = RUN_PHASE.cancelled;
 			ui.setProgress({
 				phase: "Stopped",
 				label: "Test stopped",
