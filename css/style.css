@@ -138,9 +138,9 @@ body {
 
 .brand-lockup {
 	font-family: var(--font-display);
-	font-size: 1rem;
-	font-weight: 720;
-	letter-spacing: -0.03em;
+	font-size: 1.15rem;
+	font-weight: 740;
+	letter-spacing: -0.035em;
 }
 
 .config-summary {
@@ -163,10 +163,31 @@ main {
 #start-screen {
 	min-height: calc(100dvh - 8.5rem);
 	display: flex;
-	align-items: stretch;
+	flex-direction: column;
 	transition:
 		opacity 0.3s ease,
 		visibility 0.3s ease;
+}
+
+.start-scale {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	padding: 0.55rem 1.5rem 0.4rem;
+	border-bottom: 1px solid var(--line);
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	color: var(--muted);
+	background-image: repeating-linear-gradient(
+		to right,
+		var(--track) 0,
+		var(--track) 1px,
+		transparent 1px,
+		transparent 20px
+	);
+	background-position: 0 100%;
+	background-size: 100% 10px;
+	background-repeat: no-repeat;
 }
 
 #start-screen.hidden {
@@ -179,11 +200,12 @@ main {
 	width: 100%;
 	max-width: 1180px;
 	margin: 0 auto;
-	padding: 3.5rem 1.5rem 3rem;
+	padding: 3rem 1.5rem;
 	display: grid;
 	grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.85fr);
 	gap: 3.5rem 4rem;
-	align-items: end;
+	align-items: center;
+	flex: 1;
 }
 
 .start-thesis {
@@ -417,11 +439,6 @@ main {
 	transition: background 0.15s ease;
 }
 
-.action-button:hover:not(:disabled) {
-	background: var(--accent-hover);
-	border-color: var(--accent-hover);
-}
-
 .action-button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
@@ -443,11 +460,46 @@ main {
 		color 0.15s ease;
 }
 
-.ghost-button:hover,
-.secondary-action-button:hover,
-.edit-btn:hover:not(:disabled) {
-	background: var(--ink);
-	color: var(--bg);
+@media (hover: hover) and (pointer: fine) {
+	.ghost-button:hover,
+	.secondary-action-button:hover,
+	.edit-btn:hover:not(:disabled) {
+		background: var(--ink);
+		color: var(--bg);
+	}
+
+	.action-button:hover:not(:disabled) {
+		background: var(--accent-hover);
+		border-color: var(--accent-hover);
+	}
+
+	.danger-button:hover:not(:disabled) {
+		background: var(--danger);
+		color: var(--accent-ink);
+	}
+
+	.add-provider-btn:hover {
+		background: transparent;
+		color: var(--ink);
+	}
+
+	.modal-btn.primary:hover {
+		background: var(--accent-hover);
+		border-color: var(--accent-hover);
+	}
+
+	.modal-btn.secondary:hover {
+		background: var(--ink);
+		color: var(--bg);
+	}
+
+	.text-button:hover {
+		color: var(--ink);
+	}
+
+	.site-footer a:hover {
+		color: var(--accent);
+	}
 }
 
 .edit-btn:disabled {
@@ -466,10 +518,6 @@ main {
 	padding: 0.45rem 0.15rem;
 }
 
-.text-button:hover {
-	color: var(--ink);
-}
-
 .danger-button {
 	background: transparent;
 	color: var(--danger);
@@ -480,20 +528,14 @@ main {
 	cursor: pointer;
 }
 
-.danger-button:hover:not(:disabled) {
-	background: var(--danger);
-	color: var(--accent-ink);
-}
-
 .danger-button:disabled {
 	opacity: 0.45;
 	cursor: not-allowed;
 }
 
 #main-graph-container {
-	background: var(--panel);
-	padding: 1.15rem 1.25rem 1.25rem;
-	border: 1px solid var(--line);
+	padding: 0.35rem 0 0.25rem;
+	border-top: 1px solid var(--ink);
 }
 
 .ms-ruler,
@@ -586,7 +628,7 @@ main {
 }
 
 .dns-card {
-	background: var(--panel);
+	background: transparent;
 	border: 1px solid var(--line);
 	border-left: 3px solid var(--provider, var(--line));
 	padding: 1rem 1.05rem;
@@ -724,9 +766,9 @@ main {
 }
 
 .comparison-container {
-	background: var(--panel);
-	border: 1px solid var(--line);
-	padding: 0.35rem 0.25rem;
+	background: transparent;
+	border-top: 1px solid var(--ink);
+	padding: 0.15rem 0;
 	overflow-x: auto;
 }
 
@@ -1090,11 +1132,6 @@ main {
 	width: 100%;
 }
 
-.add-provider-btn:hover {
-	background: transparent;
-	color: var(--ink);
-}
-
 .modal-btn {
 	padding: 0.65rem 1.15rem;
 	border-radius: var(--radius);
@@ -1109,20 +1146,10 @@ main {
 	color: var(--accent-ink);
 }
 
-.modal-btn.primary:hover {
-	background: var(--accent-hover);
-	border-color: var(--accent-hover);
-}
-
 .modal-btn.secondary {
 	background: transparent;
 	color: var(--ink);
 	border-color: var(--ink);
-}
-
-.modal-btn.secondary:hover {
-	background: var(--ink);
-	color: var(--bg);
 }
 
 .help-body section + section {
@@ -1178,10 +1205,6 @@ main {
 	color: var(--ink);
 	text-decoration: underline;
 	text-underline-offset: 2px;
-}
-
-.site-footer a:hover {
-	color: var(--accent);
 }
 
 .toast {
