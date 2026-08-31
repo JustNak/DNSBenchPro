@@ -22,6 +22,24 @@
 			content="Find the fastest DNS resolver from this network."
 		/>
 		<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+		<meta name="theme-color" content="#e7eaef" />
+		<script>
+			(function () {
+				var stored = null;
+				try {
+					stored = localStorage.getItem("dnsBenchTheme");
+				} catch (e) {}
+				var theme =
+					stored === "light" || stored === "dark"
+						? stored
+						: window.matchMedia &&
+							  window.matchMedia("(prefers-color-scheme: dark)").matches
+							? "dark"
+							: "light";
+				document.documentElement.setAttribute("data-theme", theme);
+				document.documentElement.style.colorScheme = theme;
+			})();
+		</script>
 		<link
 			rel="preload"
 			href="fonts/bricolage-grotesque-latin-wght.woff2"
@@ -43,7 +61,17 @@
 
 		<header class="site-mast">
 			<p class="brand-lockup">DNS Bench Pro</p>
-			<p id="config-summary" class="config-summary">6 providers / 6 sites</p>
+			<div class="mast-tools">
+				<p id="config-summary" class="config-summary">6 providers / 6 sites</p>
+				<button
+					type="button"
+					id="theme-toggle"
+					class="theme-toggle"
+					aria-label="Use dark theme"
+				>
+					Dark
+				</button>
+			</div>
 		</header>
 
 		<!-- Duration / profile modal -->
@@ -419,12 +447,13 @@
 						<div class="section-heading">
 							<h2>Overall performance</h2>
 							<p class="section-note">
-								Live average latency while providers are measured. Lower is
-								better. Scale is 0-150 ms.
+								Cached and uncached averages on one scale. Marks are individual
+								samples. Lower is better.
 							</p>
 							<p class="legend">
 								<span class="legend-item cached">Cached</span>
 								<span class="legend-item uncached">Uncached</span>
+								<span class="legend-item sample">Sample</span>
 							</p>
 						</div>
 						<div id="main-graph-container">

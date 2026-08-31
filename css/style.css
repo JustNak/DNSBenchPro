@@ -61,6 +61,7 @@
 	--z-toast: 1100;
 	--z-modal: 1000;
 	--z-skip: 2000;
+	--overlay: rgba(20, 23, 28, 0.46);
 
 	--background-color: var(--bg);
 	--card-bg: var(--panel);
@@ -74,10 +75,36 @@
 	--font-family: var(--font-body);
 }
 
+html[data-theme="dark"] {
+	color-scheme: dark;
+	--bg: #101318;
+	--panel: #171b22;
+	--ink: #e8ecf2;
+	--muted: #8b93a1;
+	--line: #2a303a;
+	--track: #252a33;
+	--accent: #e24a32;
+	--accent-hover: #f05a40;
+	--accent-ink: #fff8f6;
+	--accent-soft: #3a1f1a;
+	--cached: #4caf7a;
+	--cached-soft: #163326;
+	--uncached: #d4923a;
+	--uncached-soft: #332414;
+	--danger: #e24a32;
+	--danger-soft: #3a1f1a;
+	--good: #4caf7a;
+	--overlay: rgba(6, 8, 12, 0.72);
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
+}
+
+html {
+	color-scheme: light;
 }
 
 html,
@@ -134,6 +161,24 @@ body {
 	gap: 1rem;
 	padding: 1.1rem 1.5rem;
 	border-bottom: 1px solid var(--ink);
+}
+
+.mast-tools {
+	display: flex;
+	align-items: baseline;
+	gap: 0.85rem;
+}
+
+.theme-toggle {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	font-weight: 500;
+	color: var(--ink);
+	background: transparent;
+	border: 1px solid var(--ink);
+	border-radius: var(--radius);
+	padding: 0.2rem 0.5rem;
+	cursor: pointer;
 }
 
 .brand-lockup {
@@ -406,12 +451,46 @@ main {
 	font-family: var(--font-mono);
 }
 
+.legend-item.cached,
+.legend-item.uncached,
+.legend-item.sample {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.legend-item.cached::before,
+.legend-item.uncached::before,
+.legend-item.sample::before {
+	content: "";
+	display: block;
+	flex-shrink: 0;
+}
+
 .legend-item.cached {
 	color: var(--cached);
 }
 
+.legend-item.cached::before {
+	width: 0.75rem;
+	height: 0.35rem;
+	background: color-mix(in srgb, var(--cached) 88%, transparent);
+}
+
 .legend-item.uncached {
 	color: var(--uncached);
+}
+
+.legend-item.uncached::before {
+	width: 0.75rem;
+	height: 0.35rem;
+	background: color-mix(in srgb, var(--uncached) 42%, transparent);
+}
+
+.legend-item.sample::before {
+	width: 1px;
+	height: 0.75em;
+	background: var(--ink);
 }
 
 .action-button,
@@ -497,6 +576,11 @@ main {
 		color: var(--ink);
 	}
 
+	.theme-toggle:hover {
+		background: var(--ink);
+		color: var(--bg);
+	}
+
 	.site-footer a:hover {
 		color: var(--accent);
 	}
@@ -575,6 +659,7 @@ main {
 }
 
 .bar-container {
+	position: relative;
 	background-image: repeating-linear-gradient(
 		to right,
 		transparent,
@@ -583,13 +668,147 @@ main {
 		var(--track) 25%
 	);
 	min-width: 0;
-	height: 14px;
+	height: 22px;
 }
 
-.bar {
+.graph-track {
+	position: relative;
+	height: 100%;
+	width: 100%;
+	cursor: pointer;
+}
+
+.graph-track:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.graph-bar {
+	position: absolute;
+	left: 0;
+	top: 0;
 	height: 100%;
 	width: 0;
 	transition: width 0.35s ease;
+}
+
+.graph-bar-uncached {
+	background: color-mix(in srgb, var(--uncached) 42%, transparent);
+}
+
+.graph-bar-cached {
+	background: color-mix(in srgb, var(--cached) 88%, transparent);
+}
+
+.graph-bar.is-empty {
+	width: 0;
+}
+
+.graph-ticks {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.graph-tick {
+	position: absolute;
+	top: 0;
+	width: 1px;
+	height: 100%;
+	background: var(--ink);
+	opacity: 0.7;
+	transform: translateX(-0.5px);
+}
+
+.graph-tick.cached {
+	background: var(--cached);
+	opacity: 0.95;
+}
+
+.graph-tick.uncached {
+	background: var(--uncached);
+	opacity: 0.95;
+}
+
+.graph-median {
+	position: absolute;
+	top: -2px;
+	bottom: -2px;
+	width: 2px;
+	background: var(--ink);
+	transform: translateX(-1px);
+	z-index: 2;
+}
+
+.graph-bar-wrapper.is-winner .dns-name {
+	font-weight: 700;
+}
+
+.graph-bar-wrapper.is-winner .dns-name::after {
+	content: "Fastest";
+	display: block;
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	font-weight: 500;
+	color: var(--cached);
+	letter-spacing: 0.02em;
+}
+
+.graph-bar-wrapper.is-winner .latency-value {
+	color: var(--cached);
+	font-weight: 600;
+}
+
+.graph-popover {
+	position: absolute;
+	left: 0;
+	bottom: calc(100% + 0.45rem);
+	z-index: 5;
+	min-width: 13.5rem;
+	padding: 0.7rem 0.8rem;
+	background: var(--panel);
+	border: 1px solid var(--ink);
+	color: var(--ink);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+.bar-container:hover .graph-popover,
+.bar-container:focus-within .graph-popover,
+.graph-track:focus + .graph-popover,
+.graph-track:focus-visible + .graph-popover {
+	opacity: 1;
+}
+
+.graph-popover-title {
+	font-weight: 650;
+	font-size: 0.88rem;
+	margin-bottom: 0.45rem;
+	letter-spacing: -0.02em;
+}
+
+.graph-popover dl {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.graph-popover-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+}
+
+.graph-popover-row dt {
+	color: var(--muted);
+	font-weight: 400;
+}
+
+.graph-popover-row dd {
+	margin: 0;
+	font-weight: 500;
 }
 
 .latency-value {
@@ -856,7 +1075,7 @@ main {
 .modal-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(20, 23, 28, 0.46);
+	background: var(--overlay);
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -873,7 +1092,7 @@ main {
 }
 
 .modal-content {
-	background: var(--bg);
+	background: var(--panel);
 	border: 1px solid var(--ink);
 	transform: translateY(6px);
 	transition: transform 0.2s ease;
@@ -1054,7 +1273,8 @@ main {
 .preset-btn:focus-visible,
 .duration-btn:focus-visible,
 .text-button:focus-visible,
-.add-provider-btn:focus-visible {
+.add-provider-btn:focus-visible,
+.theme-toggle:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 }
@@ -1253,6 +1473,12 @@ main {
 
 	.site-mast {
 		padding: 0.95rem 1rem;
+	}
+
+	.graph-popover {
+		left: auto;
+		right: 0;
+		min-width: 12rem;
 	}
 
 	.duration-options,

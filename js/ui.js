@@ -1,6 +1,7 @@
 import * as dom from "./dom.js";
-import { getState, GRAPH_SCALE_MS } from "./config.js";
+import { getState } from "./config.js";
 import { buildShareSummary } from "./stats.js";
+import * as graph from "./graph.js";
 
 function escapeHtml(value) {
 	const entities = {
@@ -111,7 +112,7 @@ export function setRunningControls(isRunning) {
 
 export function createInitialUI() {
 	const state = getState();
-	dom.mainGraphContainer.innerHTML = "";
+	if (dom.mainGraphContainer) dom.mainGraphContainer.replaceChildren();
 	dom.detailedGraphsContainer.innerHTML = "";
 	dom.errorSummary.style.display = "none";
 	if (dom.recommendationSection) {
@@ -129,18 +130,11 @@ export function createInitialUI() {
 		overallTotal: 1,
 	});
 
+	graph.init(state.providers);
+
 	state.providers.forEach(({ name }) => {
 		const color = state.providerColors[name];
 		const safeName = providerKey(name);
-
-		dom.mainGraphContainer.innerHTML += `
-            <div class="graph-bar-wrapper" id="wrapper-${safeName}">
-                <div class="dns-name">${escapeHtml(name)}</div>
-                <div class="bar-container">
-                    <div class="bar" id="bar-${safeName}" style="background-color: ${color};"></div>
-                </div>
-                <div class="latency-value" id="latency-${safeName}">-</div>
-            </div>`;
 
 		dom.detailedGraphsContainer.innerHTML += `
             <div class="dns-card" id="card-${safeName}" style="--provider: ${color}">
@@ -200,15 +194,21 @@ export function displayDetailedBreakdown(providerName, breakdownData) {
 	}
 }
 
-export function updateMainGraph(name, latency) {
-	const safeName = providerKey(name);
-	const bar = document.getElementById(`bar-${safeName}`);
-	const latencyEl = document.getElementById(`latency-${safeName}`);
-	if (bar && latencyEl) {
-		const width = Math.min(100, (latency / GRAPH_SCALE_MS) * 100);
-		bar.style.width = `${width}%`;
-		latencyEl.textContent = `${latency.toFixed(0)} ms`;
-	}
+export function refreshProviderColors() {
+	const state = getState();
+	state.providers.forEach(({ name }) => {
+		const color = state.providerColors[name];
+		const safeName = providerKey(name);
+		const card = document.getElementById(`card-${safeName}`);
+		if (card) card.style.setProperty("--provider", color);
+	});
+	document
+		.querySelectorAll(".comparison-table tbody tr[data-provider]")
+		.forEach((row) => {
+			const color = state.providerColors[row.dataset.provider];
+			if (color) row.style.borderLeftColor = color;
+		});
+	graph.refreshColors();
 }
 
 export function updateCardStats(name, allStats) {
@@ -327,7 +327,7 @@ export function createComparisonTable(allProviderStats, medianRanks) {
 			const rank = stats.medianRank;
 			const rankClass = rank <= 3 ? `rank-${rank}` : "";
 			tableHTML += `
-                <tr style="border-left: 4px solid ${
+                <tr data-provider="${escapeHtml(stats.name)}" style="border-left: 4px solid ${
 					state.providerColors[stats.name]
 				};">
                     <td><span class="rank-badge ${rankClass}">#${rank}</span></td>
@@ -384,6 +384,7 @@ export function displayRecommendation(recommendation, incomplete = false) {
 	if (dom.recommendationSection) {
 		dom.recommendationSection.style.display = "none";
 	}
+	graph.markWinner(recommendation.winnerName);
 }
 
 export function showIncompleteState(message) {

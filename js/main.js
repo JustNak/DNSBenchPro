@@ -2,6 +2,8 @@ import * as dom from "./dom.js";
 import * as ui from "./ui.js";
 import * as api from "./api.js";
 import * as stats from "./stats.js";
+import * as theme from "./theme.js";
+import * as graph from "./graph.js";
 import { initModals, openDurationModal } from "./modals.js";
 import {
 	getState,
@@ -23,8 +25,6 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 	const state = getState();
 	const domains = [...state.domains];
 	const allResults = [];
-	let runningTotalLatency = 0;
-	let successfulQueryCount = 0;
 
 	const totalQueries = queriesPerUrl * domains.length;
 	let currentQueryIndex = 0;
@@ -63,13 +63,11 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 					? `${result.latency.toFixed(0)} ms`
 					: "failed";
 
-			if (result.latency !== null) {
-				successfulQueryCount++;
-				runningTotalLatency += result.latency;
-				const runningAverage =
-					runningTotalLatency / successfulQueryCount;
-				ui.updateMainGraph(provider.name, runningAverage);
-			}
+			graph.applySample(provider.name, {
+				latency: result.latency,
+				isUncached,
+				domain,
+			});
 
 			ui.setProgress({
 				phase: "Measuring",
@@ -85,6 +83,7 @@ async function runTestForProvider(provider, queriesPerUrl, progressOffset, total
 
 	const allStats = stats.calculateStats(allResults);
 	state.allProviderStats[provider.name] = allStats;
+	graph.finishProvider(provider.name);
 	ui.updateCardStats(provider.name, allStats);
 	ui.showCard(provider.name);
 
@@ -266,6 +265,12 @@ async function startTest(queryCount) {
 
 function initialize() {
 	loadSettings();
+	theme.init({
+		onChange() {
+			generateProviderColors();
+			ui.refreshProviderColors();
+		},
+	});
 	generateProviderColors();
 	ui.updateConfigSummary();
 	dom.startButton.disabled = false;
