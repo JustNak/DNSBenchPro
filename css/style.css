@@ -775,7 +775,9 @@ main {
 }
 
 .bar-container:hover .graph-popover,
-.bar-container:focus-within .graph-popover {
+.bar-container:focus-within .graph-popover,
+.graph-track:focus + .graph-popover,
+.graph-track:focus-visible + .graph-popover {
 	opacity: 1;
 }
 
@@ -1090,7 +1092,7 @@ main {
 }
 
 .modal-content {
-	background: var(--bg);
+	background: var(--panel);
 	border: 1px solid var(--ink);
 	transform: translateY(6px);
 	transition: transform 0.2s ease;
