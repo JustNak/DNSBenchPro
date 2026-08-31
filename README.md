@@ -9,7 +9,8 @@
 * **Multi-ping execution** — independent sites are queried in parallel for faster runs without changing the sample count.
 * **Live progress** — warm-up vs measuring phases, determinate progress, and Stop.
 * **Configurable** — edit providers and sites, apply presets, or reset to defaults before you run.
-* **Clear results** — recommendation hero, live latency bars, cached vs uncached breakdown, sortable comparison with stable median ranks, CSV export, and share/copy summary.
+* **Clear results** — recommendation hero, live cached vs uncached graph with sample marks, sortable comparison with stable median ranks, CSV export, and share/copy summary.
+* **Dark theme** — follows the system preference, with a Light/Dark control that persists.
 
 ## How to use
 

@@ -248,6 +248,37 @@ export function applyPreset(presetId) {
 	return true;
 }
 
+const LIGHT_PROVIDER_COLORS = [
+	"#c2341a",
+	"#2c5f8a",
+	"#1a6b4a",
+	"#8a4b12",
+	"#3d3a7a",
+	"#6b3d54",
+	"#1f5f62",
+	"#5c5346",
+	"#7a3b2e",
+	"#2a4a73",
+];
+
+const DARK_PROVIDER_COLORS = [
+	"#e24a32",
+	"#6b9fd4",
+	"#4caf7a",
+	"#d4923a",
+	"#9b8fd4",
+	"#d47a9a",
+	"#4db6b0",
+	"#c4b08a",
+	"#e07a64",
+	"#7a9bc4",
+];
+
+export function currentThemeName() {
+	if (typeof document === "undefined") return "light";
+	return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
 const WARM_UP_SECONDS_PER_PROVIDER = 0.18;
 const MEASURE_SECONDS_PER_PROVIDER_ROUND = 0.2;
 
@@ -264,22 +295,13 @@ export function estimateTestDuration(queryCount) {
 }
 
 export function generateProviderColors() {
-	const predefinedColors = [
-		"#c2341a",
-		"#2c5f8a",
-		"#1a6b4a",
-		"#8a4b12",
-		"#3d3a7a",
-		"#6b3d54",
-		"#1f5f62",
-		"#5c5346",
-		"#7a3b2e",
-		"#2a4a73",
-	];
+	const palette =
+		currentThemeName() === "dark"
+			? DARK_PROVIDER_COLORS
+			: LIGHT_PROVIDER_COLORS;
 	state.providerColors = Object.create(null);
 	state.providers.forEach(({ name }, index) => {
-		state.providerColors[name] =
-			predefinedColors[index % predefinedColors.length];
+		state.providerColors[name] = palette[index % palette.length];
 	});
 }
 
